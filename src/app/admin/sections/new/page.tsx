@@ -18,7 +18,7 @@ async function createSection(formData: FormData) {
     throw new Error("اسم القسم و slug مطلوبان.");
   }
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const { error } = await supabase.from("category_sections").insert({
     name,

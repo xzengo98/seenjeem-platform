@@ -6,7 +6,7 @@ import { getSupabaseServerClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export default async function AdminPage() {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const [
     sectionsResult,

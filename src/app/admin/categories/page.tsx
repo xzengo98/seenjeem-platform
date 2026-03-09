@@ -35,7 +35,7 @@ async function deleteCategory(formData: FormData) {
   "use server";
 
   const id = String(formData.get("id") ?? "");
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   await supabase.from("questions").delete().eq("category_id", id);
   await supabase.from("categories").delete().eq("id", id);
@@ -46,7 +46,7 @@ async function deleteCategory(formData: FormData) {
 
 export default async function AdminCategoriesPage() {
   try {
-    const supabase = getSupabaseServerClient();
+    const supabase = await getSupabaseServerClient();
 
     const { data, error } = await supabase
       .from("categories")

@@ -27,7 +27,7 @@ async function updateCategory(formData: FormData) {
   const sortOrder = Number(formData.get("sort_order") ?? 0);
   const isActive = formData.get("is_active") === "on";
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   await supabase
     .from("categories")
@@ -49,7 +49,7 @@ async function updateCategory(formData: FormData) {
 
 export default async function EditCategoryPage({ params }: PageProps) {
   const { id } = await params;
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const [{ data: category, error: categoryError }, { data: sections, error: sectionsError }] =
     await Promise.all([

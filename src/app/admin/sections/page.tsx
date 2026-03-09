@@ -19,7 +19,7 @@ async function deleteSection(formData: FormData) {
 
   const id = String(formData.get("id") ?? "");
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   await supabase.from("categories").update({ section_id: null }).eq("section_id", id);
   await supabase.from("category_sections").delete().eq("id", id);
@@ -30,7 +30,7 @@ async function deleteSection(formData: FormData) {
 
 export default async function AdminSectionsPage() {
   try {
-    const supabase = getSupabaseServerClient();
+    const supabase = await getSupabaseServerClient();
 
     const { data, error } = await supabase
       .from("category_sections")

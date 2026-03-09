@@ -61,7 +61,7 @@ export default async function GamePlayPage({
     );
   }
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("questions")

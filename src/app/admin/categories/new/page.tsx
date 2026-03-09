@@ -26,7 +26,7 @@ async function createCategory(formData: FormData) {
     throw new Error("اسم الفئة و slug مطلوبان.");
   }
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const { error } = await supabase.from("categories").insert({
     name,
@@ -48,7 +48,7 @@ async function createCategory(formData: FormData) {
 }
 
 export default async function NewCategoryPage() {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("category_sections")

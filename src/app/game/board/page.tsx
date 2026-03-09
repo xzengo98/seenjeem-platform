@@ -59,7 +59,7 @@ export default async function GameBoardPage({ searchParams }: PageProps) {
     );
   }
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const { data: categoriesData, error: categoriesError } = await supabase
     .from("categories")

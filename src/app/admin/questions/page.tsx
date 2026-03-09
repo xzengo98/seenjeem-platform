@@ -30,7 +30,7 @@ async function deleteQuestion(formData: FormData) {
   "use server";
 
   const id = String(formData.get("id") ?? "");
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   await supabase.from("questions").delete().eq("id", id);
 
@@ -40,7 +40,7 @@ async function deleteQuestion(formData: FormData) {
 
 export default async function AdminQuestionsPage() {
   try {
-    const supabase = getSupabaseServerClient();
+    const supabase = await getSupabaseServerClient();
 
     const { data, error } = await supabase
       .from("questions")

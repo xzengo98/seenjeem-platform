@@ -47,14 +47,14 @@ export default function StartGameForm({
   const [errorMessage, setErrorMessage] = useState("");
 
   const groupedSections = useMemo(() => {
-    return sections
+    return (sections ?? [])
       .map((section) => ({
         ...section,
-        categories: categories.filter(
+        categories: (categories ?? []).filter(
           (category) => category.section_id === section.id
         ),
       }))
-      .filter((section) => section.categories.length > 0);
+      .filter((section) => (section.categories ?? []).length > 0);
   }, [sections, categories]);
 
   function toggleCategory(slug: string) {
@@ -131,7 +131,7 @@ export default function StartGameForm({
           <div>
             <h2 className="text-2xl font-black">اختر الفئات</h2>
             <p className="mt-2 text-slate-300">
-              الفئات الآن مرتبة تحت أقسام رئيسية لتسهيل الاختيار.
+              الفئات مرتبة تحت أقسام رئيسية لتسهيل الاختيار.
             </p>
           </div>
 
@@ -141,95 +141,103 @@ export default function StartGameForm({
         </div>
 
         <div className="space-y-8">
-          {groupedSections.map((section) => {
-            const sectionGradient =
-              sectionColors[section.slug] ??
-              "from-slate-300/20 via-slate-400/10 to-transparent";
+          {groupedSections.length > 0 ? (
+            groupedSections.map((section) => {
+              const sectionGradient =
+                sectionColors[section.slug] ??
+                "from-slate-300/20 via-slate-400/10 to-transparent";
 
-            return (
-              <section
-                key={section.id}
-                className="rounded-[2rem] border border-white/10 bg-slate-900/40 p-5"
-              >
-                <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
-                  <div>
-                    <div className="text-3xl font-black">{section.name}</div>
-                    <div className="mt-2 text-slate-300">
-                      {section.description || "قسم رئيسي للفئات"}
+              return (
+                <section
+                  key={section.id}
+                  className="rounded-[2rem] border border-white/10 bg-slate-900/40 p-5"
+                >
+                  <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                      <div className="text-3xl font-black">{section.name}</div>
+                      <div className="mt-2 text-slate-300">
+                        {section.description || "قسم رئيسي للفئات"}
+                      </div>
+                    </div>
+
+                    <div
+                      className={`rounded-full border border-white/10 bg-gradient-to-r ${sectionGradient} px-5 py-2 text-sm font-bold text-white`}
+                    >
+                      {section.slug}
                     </div>
                   </div>
 
-                  <div
-                    className={`rounded-full border border-white/10 bg-gradient-to-r ${sectionGradient} px-5 py-2 text-sm font-bold text-white`}
-                  >
-                    {section.slug}
-                  </div>
-                </div>
+                  <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                    {(section.categories ?? []).map((category) => {
+                      const active = selectedCategories.includes(category.slug);
 
-                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-                  {section.categories.map((category) => {
-                    const active = selectedCategories.includes(category.slug);
-
-                    return (
-                      <button
-                        key={category.id}
-                        type="button"
-                        onClick={() => toggleCategory(category.slug)}
-                        className={`overflow-hidden rounded-[2rem] border text-right transition ${
-                          active
-                            ? "border-cyan-400 bg-cyan-400/10 shadow-[0_0_0_1px_rgba(34,211,238,0.25)]"
-                            : "border-white/10 bg-slate-950/60 hover:border-white/20"
-                        }`}
-                      >
-                        <div
-                          className={`relative h-44 bg-gradient-to-br ${
+                      return (
+                        <button
+                          key={category.id}
+                          type="button"
+                          onClick={() => toggleCategory(category.slug)}
+                          className={`overflow-hidden rounded-[2rem] border text-right transition ${
                             active
-                              ? "from-cyan-400/20 via-sky-400/10 to-transparent"
-                              : "from-white/10 via-white/5 to-transparent"
+                              ? "border-cyan-400 bg-cyan-400/10 shadow-[0_0_0_1px_rgba(34,211,238,0.25)]"
+                              : "border-white/10 bg-slate-950/60 hover:border-white/20"
                           }`}
                         >
-                          <div className="absolute left-4 top-4">
-                            <div
-                              className={`h-6 w-6 rounded-full border ${
-                                active
-                                  ? "border-cyan-400 bg-cyan-400"
-                                  : "border-white/20"
-                              }`}
-                            />
+                          <div
+                            className={`relative h-44 bg-gradient-to-br ${
+                              active
+                                ? "from-cyan-400/20 via-sky-400/10 to-transparent"
+                                : "from-white/10 via-white/5 to-transparent"
+                            }`}
+                          >
+                            <div className="absolute left-4 top-4">
+                              <div
+                                className={`h-6 w-6 rounded-full border ${
+                                  active
+                                    ? "border-cyan-400 bg-cyan-400"
+                                    : "border-white/20"
+                                }`}
+                              />
+                            </div>
+
+                            <div className="relative flex h-full items-center justify-center px-6">
+                              {category.image_url ? (
+                                <div className="relative h-28 w-28">
+                                  <Image
+                                    src={category.image_url}
+                                    alt={category.name}
+                                    fill
+                                    className="object-contain drop-shadow-[0_14px_30px_rgba(0,0,0,0.35)]"
+                                  />
+                                </div>
+                              ) : (
+                                <div className="text-6xl opacity-80">✨</div>
+                              )}
+                            </div>
                           </div>
 
-                          <div className="relative flex h-full items-center justify-center px-6">
-                            {category.image_url ? (
-                              <div className="relative h-28 w-28">
-                                <Image
-                                  src={category.image_url}
-                                  alt={category.name}
-                                  fill
-                                  className="object-contain drop-shadow-[0_14px_30px_rgba(0,0,0,0.35)]"
-                                />
-                              </div>
-                            ) : (
-                              <div className="text-6xl opacity-80">✨</div>
-                            )}
+                          <div className="border-t border-white/10 px-5 py-5">
+                            <div className="text-2xl font-black">
+                              {category.name}
+                            </div>
+                            <div className="mt-2 text-sm text-cyan-300">
+                              {category.slug}
+                            </div>
+                            <p className="mt-3 min-h-[48px] text-sm leading-7 text-slate-300">
+                              {category.description || "بدون وصف"}
+                            </p>
                           </div>
-                        </div>
-
-                        <div className="border-t border-white/10 px-5 py-5">
-                          <div className="text-2xl font-black">{category.name}</div>
-                          <div className="mt-2 text-sm text-cyan-300">
-                            {category.slug}
-                          </div>
-                          <p className="mt-3 min-h-[48px] text-sm leading-7 text-slate-300">
-                            {category.description || "بدون وصف"}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+              );
+            })
+          ) : (
+            <div className="rounded-2xl border border-white/10 bg-slate-900/40 p-6 text-slate-300">
+              لا توجد أقسام أو فئات جاهزة حاليًا.
+            </div>
+          )}
         </div>
       </div>
 

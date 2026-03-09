@@ -24,7 +24,7 @@ async function createQuestion(formData: FormData) {
     throw new Error("الفئة والسؤال والإجابة مطلوبة.");
   }
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const { error } = await supabase.from("questions").insert({
     category_id: categoryId,
@@ -44,7 +44,7 @@ async function createQuestion(formData: FormData) {
 }
 
 export default async function NewQuestionPage() {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const { data, error } = await supabase
     .from("categories")
