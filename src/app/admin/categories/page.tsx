@@ -1,11 +1,9 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import AdminEmptyState from "@/components/admin/admin-empty-state";
 import AdminPageHeader from "@/components/admin/admin-page-header";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
+import { supabase } from "@/lib/supabase/client";
 
 type Category = {
   id: string;
@@ -17,28 +15,30 @@ type Category = {
   created_at: string;
 };
 
-export default async function AdminCategoriesPage() {
-  const { data, error } = await supabase
-    .from("categories")
-    .select("*")
-    .order("sort_order", { ascending: true });
+export default function AdminCategoriesPage() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
 
-  const categories = (data ?? []) as Category[];
+  useEffect(() => {
+    async function loadCategories() {
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("sort_order", { ascending: true });
 
-  if (error) {
-    return (
-      <div className="space-y-8">
-        <AdminPageHeader
-          title="إدارة الفئات"
-          description="حدث خطأ أثناء جلب البيانات من قاعدة البيانات."
-        />
+      if (error) {
+        setErrorMessage(error.message);
+        setLoading(false);
+        return;
+      }
 
-        <div className="rounded-[2rem] border border-red-500/20 bg-red-500/10 p-6 text-red-200">
-          فشل تحميل الفئات من Supabase: {error.message}
-        </div>
-      </div>
-    );
-  }
+      setCategories((data ?? []) as Category[]);
+      setLoading(false);
+    }
+
+    loadCategories();
+  }, []);
 
   return (
     <div className="space-y-8">
@@ -70,7 +70,15 @@ export default async function AdminCategoriesPage() {
         </div>
       </div>
 
-      {categories.length > 0 ? (
+      {loading ? (
+        <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 text-slate-300">
+          جارٍ تحميل الفئات...
+        </div>
+      ) : errorMessage ? (
+        <div className="rounded-[2rem] border border-red-500/20 bg-red-500/10 p-6 text-red-200">
+          فشل تحميل الفئات: {errorMessage}
+        </div>
+      ) : categories.length > 0 ? (
         <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-white/5">
           <div className="grid grid-cols-4 border-b border-white/10 bg-slate-900/60 px-6 py-4 font-bold text-slate-200">
             <div>اسم الفئة</div>
