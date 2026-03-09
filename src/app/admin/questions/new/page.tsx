@@ -16,11 +16,12 @@ async function createQuestion(formData: FormData) {
 
   const categoryId = String(formData.get("category_id") ?? "").trim();
   const questionText = String(formData.get("question_text") ?? "").trim();
-  const difficulty = String(formData.get("difficulty") ?? "medium").trim();
+  const answerText = String(formData.get("answer_text") ?? "").trim();
+  const points = Number(formData.get("points") ?? 200);
   const isActive = formData.get("is_active") === "on";
 
-  if (!categoryId || !questionText) {
-    throw new Error("الفئة ونص السؤال مطلوبان.");
+  if (!categoryId || !questionText || !answerText) {
+    throw new Error("الفئة والسؤال والإجابة مطلوبة.");
   }
 
   const supabase = getSupabaseServerClient();
@@ -28,8 +29,10 @@ async function createQuestion(formData: FormData) {
   const { error } = await supabase.from("questions").insert({
     category_id: categoryId,
     question_text: questionText,
-    difficulty,
+    answer_text: answerText,
+    points: Number.isNaN(points) ? 200 : points,
     is_active: isActive,
+    is_used: false,
   });
 
   if (error) {
@@ -56,7 +59,6 @@ export default async function NewQuestionPage() {
           title="إضافة سؤال"
           description="حدث خطأ أثناء جلب الفئات من قاعدة البيانات."
         />
-
         <div className="rounded-[2rem] border border-red-500/20 bg-red-500/10 p-6 text-red-200">
           فشل تحميل الفئات: {error.message}
         </div>
@@ -70,7 +72,7 @@ export default async function NewQuestionPage() {
     <div className="space-y-8">
       <AdminPageHeader
         title="إضافة سؤال جديد"
-        description="أضف سؤالًا جديدًا واربطه بإحدى الفئات الموجودة."
+        description="أضف سؤالًا شفهيًا مع الإجابة والنقاط واربطه بإحدى الفئات."
         action={
           <a
             href="/admin/questions"
@@ -98,14 +100,26 @@ export default async function NewQuestionPage() {
             />
           </div>
 
+          <div className="md:col-span-2">
+            <label className="mb-2 block text-sm font-bold text-slate-200">
+              الإجابة
+            </label>
+            <textarea
+              name="answer_text"
+              placeholder="اكتب الإجابة الصحيحة هنا"
+              rows={3}
+              className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
+            />
+          </div>
+
           <div>
             <label className="mb-2 block text-sm font-bold text-slate-200">
               الفئة
             </label>
             <select
               name="category_id"
-              className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
               defaultValue=""
+              className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
             >
               <option value="" disabled>
                 اختر الفئة
@@ -120,16 +134,16 @@ export default async function NewQuestionPage() {
 
           <div>
             <label className="mb-2 block text-sm font-bold text-slate-200">
-              الصعوبة
+              النقاط
             </label>
             <select
-              name="difficulty"
-              defaultValue="medium"
+              name="points"
+              defaultValue="200"
               className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
             >
-              <option value="easy">easy</option>
-              <option value="medium">medium</option>
-              <option value="hard">hard</option>
+              <option value="200">200</option>
+              <option value="400">400</option>
+              <option value="600">600</option>
             </select>
           </div>
 
