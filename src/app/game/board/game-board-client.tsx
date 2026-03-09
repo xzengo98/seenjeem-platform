@@ -32,6 +32,38 @@ type OpenQuestion = QuestionRow & {
   slotIndex: number;
 };
 
+type CategoryVisual = {
+  emoji: string;
+  gradient: string;
+};
+
+const categoryVisuals: Record<string, CategoryVisual> = {
+  history: {
+    emoji: "🏛️",
+    gradient: "from-amber-300/20 via-orange-400/10 to-transparent",
+  },
+  sports: {
+    emoji: "⚽",
+    gradient: "from-emerald-300/20 via-green-400/10 to-transparent",
+  },
+  geography: {
+    emoji: "🗺️",
+    gradient: "from-sky-300/20 via-cyan-400/10 to-transparent",
+  },
+  science: {
+    emoji: "🧪",
+    gradient: "from-violet-300/20 via-fuchsia-400/10 to-transparent",
+  },
+  movies: {
+    emoji: "🎬",
+    gradient: "from-rose-300/20 via-pink-400/10 to-transparent",
+  },
+  default: {
+    emoji: "✨",
+    gradient: "from-slate-300/20 via-slate-400/10 to-transparent",
+  },
+};
+
 export default function GameBoardClient({
   gameName,
   teamOne,
@@ -119,11 +151,15 @@ export default function GameBoardClient({
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      <div className="border-b border-white/10 bg-white/5 px-6 py-5">
+      <div className="border-b border-white/10 bg-gradient-to-l from-white/10 via-white/5 to-transparent px-6 py-5">
         <div className="mx-auto flex max-w-[1700px] flex-wrap items-center justify-between gap-4">
           <div>
             <div className="text-sm text-slate-400">اسم اللعبة</div>
             <div className="text-3xl font-black">{gameName}</div>
+          </div>
+
+          <div className="rounded-full bg-orange-400 px-8 py-3 text-xl font-black text-slate-950">
+            الحكم هو من يحدد الفريق الصحيح
           </div>
 
           <div className="flex flex-wrap gap-3">
@@ -143,72 +179,82 @@ export default function GameBoardClient({
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1700px] px-6 py-6">
-        <div className="mb-6 grid gap-6 lg:grid-cols-[280px_1fr_280px]">
-          <TeamCard name={teamOne} score={teamOneScore} />
-          <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5 text-center">
-            <div className="text-sm text-slate-400">دور اللعب</div>
-            <div className="mt-2 text-2xl font-black text-cyan-300">
-              الحكم هو من يحدد الفريق الصحيح
+      <div className="mx-auto max-w-[1800px] px-6 py-6">
+        <div className="mb-8 grid gap-6 lg:grid-cols-[280px_1fr_280px]">
+          <TeamCard name={teamOne} score={teamOneScore} accent="orange" />
+          <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 text-center">
+            <div className="text-sm text-slate-400">الجولة الحالية</div>
+            <div className="mt-3 text-4xl font-black text-cyan-300">
+              {gameName}
             </div>
           </div>
-          <TeamCard name={teamTwo} score={teamTwoScore} />
+          <TeamCard name={teamTwo} score={teamTwoScore} accent="cyan" />
         </div>
 
-        <div
-          className="grid gap-6"
-          style={{
-            gridTemplateColumns: `repeat(${Math.max(
-              categories.length,
-              1
-            )}, minmax(0, 1fr))`,
-          }}
-        >
-          {grouped.map((category) => (
-            <div
-              key={category.id}
-              className="rounded-[2rem] border border-white/10 bg-white/5 p-4"
-            >
-              <div className="mb-4 rounded-2xl bg-slate-900/70 px-4 py-5 text-center">
-                <div className="text-2xl font-black">{category.name}</div>
-                <div className="mt-2 text-sm text-cyan-300">{category.slug}</div>
-              </div>
+        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-3">
+          {grouped.map((category) => {
+            const visual = categoryVisuals[category.slug] ?? categoryVisuals.default;
 
-              <div className="space-y-4">
-                {category.slots.map((slot) => {
-                  const question = slot.question;
-                  const used = question ? usedQuestionIds.includes(question.id) : true;
+            return (
+              <div
+                key={category.id}
+                className="rounded-[2.25rem] border border-white/10 bg-white/5 p-4 shadow-[0_20px_80px_-30px_rgba(0,0,0,0.7)]"
+              >
+                <div className="grid grid-cols-[88px_1fr_88px] gap-3">
+                  <div className="space-y-3">
+                    {category.slots.filter((_, i) => i % 2 === 0).map((slot) => (
+                      <PointsButton
+                        key={`${category.id}-left-${slot.slotIndex}`}
+                        slot={slot}
+                        usedQuestionIds={usedQuestionIds}
+                        onOpen={(question) =>
+                          openQuestionCard(question, category.name, slot.slotIndex)
+                        }
+                      />
+                    ))}
+                  </div>
 
-                  return (
-                    <button
-                      key={`${category.id}-${slot.slotIndex}-${slot.points}`}
-                      type="button"
-                      disabled={!question || used}
-                      onClick={() =>
-                        question &&
-                        openQuestionCard(question, category.name, slot.slotIndex)
-                      }
-                      className={`flex h-24 w-full items-center justify-center rounded-[2rem] text-4xl font-black transition ${
-                        !question
-                          ? "cursor-not-allowed border border-white/5 bg-slate-900/30 text-slate-700"
-                          : used
-                          ? "cursor-not-allowed border border-white/10 bg-slate-900/60 text-slate-500 line-through"
-                          : "border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 hover:bg-cyan-400/20"
-                      }`}
+                  <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900/70">
+                    <div
+                      className={`relative flex h-[440px] flex-col overflow-hidden bg-gradient-to-br ${visual.gradient}`}
                     >
-                      {slot.points}
-                    </button>
-                  );
-                })}
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_30%)]" />
+
+                      <div className="relative flex flex-1 items-center justify-center">
+                        <div className="select-none text-[120px] opacity-90">
+                          {visual.emoji}
+                        </div>
+                      </div>
+
+                      <div className="relative border-t border-white/10 bg-slate-950/70 px-4 py-5 text-center">
+                        <div className="text-3xl font-black">{category.name}</div>
+                        <div className="mt-2 text-sm text-cyan-300">{category.slug}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {category.slots.filter((_, i) => i % 2 === 1).map((slot) => (
+                      <PointsButton
+                        key={`${category.id}-right-${slot.slotIndex}`}
+                        slot={slot}
+                        usedQuestionIds={usedQuestionIds}
+                        onOpen={(question) =>
+                          openQuestionCard(question, category.name, slot.slotIndex)
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
       {openQuestion ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 px-6 py-8">
-          <div className="w-full max-w-6xl rounded-[2.5rem] border border-orange-400/40 bg-[#2e2f33] p-8 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 px-4 py-6">
+          <div className="w-full max-w-7xl rounded-[2.5rem] border border-orange-400/40 bg-[#2e2f33] p-6 shadow-2xl md:p-8">
             {!showAnswer && !showWinnerPicker ? (
               <div className="space-y-8">
                 <div className="flex flex-wrap items-center justify-between gap-4">
@@ -220,8 +266,8 @@ export default function GameBoardClient({
                   </div>
                 </div>
 
-                <div className="text-center">
-                  <h2 className="text-4xl font-black leading-[1.5]">
+                <div className="rounded-[2rem] border border-orange-400/40 bg-[#35363a] px-6 py-10 text-center">
+                  <h2 className="text-3xl font-black leading-[1.7] md:text-5xl">
                     {openQuestion.question_text}
                   </h2>
                 </div>
@@ -238,17 +284,17 @@ export default function GameBoardClient({
                   <button
                     type="button"
                     onClick={revealAnswer}
-                    className="rounded-2xl bg-green-500 px-8 py-4 text-2xl font-black text-white"
+                    className="rounded-2xl bg-green-600 px-8 py-4 text-2xl font-black text-white"
                   >
-                    إظهار الإجابة
+                    الإجابة
                   </button>
                 </div>
               </div>
             ) : showAnswer && !showWinnerPicker ? (
               <div className="space-y-8">
-                <div className="text-center">
-                  <div className="text-sm text-slate-400">الإجابة</div>
-                  <h2 className="mt-4 text-5xl font-black leading-[1.4] text-white">
+                <div className="rounded-[2rem] border border-orange-400/40 bg-[#35363a] px-6 py-10 text-center">
+                  <div className="text-lg text-slate-300">الإجابة الصحيحة</div>
+                  <h2 className="mt-6 text-4xl font-black leading-[1.5] md:text-6xl">
                     {openQuestion.answer_text ?? "لا توجد إجابة"}
                   </h2>
                 </div>
@@ -259,7 +305,7 @@ export default function GameBoardClient({
                     onClick={() => setShowAnswer(false)}
                     className="rounded-2xl border border-white/10 px-6 py-3 font-semibold text-slate-300"
                   >
-                    رجوع للسؤال
+                    ارجع للسؤال
                   </button>
 
                   <button
@@ -267,13 +313,13 @@ export default function GameBoardClient({
                     onClick={goToWinnerPicker}
                     className="rounded-2xl bg-red-600 px-8 py-4 text-2xl font-black text-white"
                   >
-                    أي فريق جاوب صح؟
+                    أي فريق؟
                   </button>
                 </div>
               </div>
             ) : (
               <div className="space-y-10 text-center">
-                <h2 className="text-5xl font-black">أي فريق جاوب صح؟</h2>
+                <h2 className="text-4xl font-black md:text-6xl">أي فريق جاوب صح؟</h2>
 
                 <div className="grid gap-6 md:grid-cols-3">
                   <button
@@ -295,7 +341,7 @@ export default function GameBoardClient({
                   <button
                     type="button"
                     onClick={() => awardPoints("none")}
-                    className="rounded-[2rem] bg-slate-400 px-8 py-8 text-4xl font-black text-white"
+                    className="rounded-[2rem] bg-slate-500 px-8 py-8 text-4xl font-black text-white"
                   >
                     ولا أحد
                   </button>
@@ -319,10 +365,57 @@ export default function GameBoardClient({
   );
 }
 
-function TeamCard({ name, score }: { name: string; score: number }) {
+function PointsButton({
+  slot,
+  usedQuestionIds,
+  onOpen,
+}: {
+  slot: {
+    points: number;
+    question: QuestionRow | null;
+    slotIndex: number;
+  };
+  usedQuestionIds: string[];
+  onOpen: (question: QuestionRow) => void;
+}) {
+  const question = slot.question;
+  const used = question ? usedQuestionIds.includes(question.id) : true;
+
+  return (
+    <button
+      type="button"
+      disabled={!question || used}
+      onClick={() => question && onOpen(question)}
+      className={`flex h-[65px] w-full items-center justify-center rounded-[1.6rem] text-3xl font-black transition ${
+        !question
+          ? "cursor-not-allowed border border-white/5 bg-slate-900/30 text-slate-700"
+          : used
+          ? "cursor-not-allowed border border-white/10 bg-slate-900/60 text-slate-500 line-through"
+          : "border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 hover:bg-cyan-400/20"
+      }`}
+    >
+      {slot.points}
+    </button>
+  );
+}
+
+function TeamCard({
+  name,
+  score,
+  accent,
+}: {
+  name: string;
+  score: number;
+  accent: "orange" | "cyan";
+}) {
+  const accentClass =
+    accent === "orange"
+      ? "bg-orange-400 text-slate-950"
+      : "bg-cyan-400 text-slate-950";
+
   return (
     <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5 text-center">
-      <div className="rounded-2xl bg-orange-400 px-4 py-3 text-xl font-black text-slate-950">
+      <div className={`rounded-2xl px-4 py-3 text-xl font-black ${accentClass}`}>
         {name}
       </div>
       <div className="mt-5 text-6xl font-black">{score}</div>
