@@ -72,7 +72,7 @@ async function registerAction(formData: FormData) {
     redirect("/login?error=تم إنشاء الحساب لكن تعذر تسجيل الدخول مباشرة");
   }
 
-  redirect("/game/start");
+  redirect("/");
 }
 
 export default async function RegisterPage({
