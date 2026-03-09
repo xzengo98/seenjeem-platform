@@ -27,17 +27,7 @@ async function registerAction(formData: FormData) {
     redirect("/register?error=كلمة المرور يجب أن تكون 6 أحرف على الأقل");
   }
 
-  if (!/^[a-z0-9_]{3,30}$/.test(username)) {
-    redirect(
-      "/register?error=اسم المستخدم يجب أن يكون 3 أحرف على الأقل ويحتوي فقط على حروف إنجليزية صغيرة أو أرقام أو _"
-    );
-  }
-
-  if (!/^\+?[0-9]{8,15}$/.test(phone)) {
-    redirect("/register?error=رقم الهاتف غير صالح");
-  }
-
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const { data, error } = await supabase.auth.signUp({
     email,
@@ -58,16 +48,6 @@ async function registerAction(formData: FormData) {
       redirect("/register?error=هذا البريد الإلكتروني مستخدم بالفعل");
     }
 
-    if (
-      msg.includes("duplicate") ||
-      msg.includes("unique") ||
-      msg.includes("database error saving new user")
-    ) {
-      redirect(
-        "/register?error=تأكد أن البريد الإلكتروني واسم المستخدم ورقم الهاتف غير مستخدمة مسبقًا"
-      );
-    }
-
     redirect(`/register?error=${encodeURIComponent(error.message)}`);
   }
 
@@ -81,9 +61,7 @@ async function registerAction(formData: FormData) {
   });
 
   if (loginResult.error) {
-    redirect(
-      "/login?error=تم إنشاء الحساب لكن تعذر تسجيل الدخول مباشرة. تأكد من تعطيل Confirm Email في Supabase"
-    );
+    redirect("/login?error=تم إنشاء الحساب لكن تعذر تسجيل الدخول مباشرة");
   }
 
   redirect("/");
@@ -100,7 +78,7 @@ export default async function RegisterPage({
         <div className="rounded-[2rem] border border-white/10 bg-white/5 p-8">
           <h1 className="text-4xl font-black">إنشاء حساب جديد</h1>
           <p className="mt-3 text-slate-300">
-            أنشئ حسابك وابدأ مباشرة
+            أنشئ حسابك وابدأ مباشرة.
           </p>
 
           {params.error ? (
@@ -116,7 +94,6 @@ export default async function RegisterPage({
               </label>
               <input
                 name="full_name"
-                placeholder="اسمك الكامل"
                 className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
               />
             </div>
@@ -127,7 +104,6 @@ export default async function RegisterPage({
               </label>
               <input
                 name="username"
-                placeholder="username"
                 className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
               />
             </div>
@@ -138,7 +114,6 @@ export default async function RegisterPage({
               </label>
               <input
                 name="phone"
-                placeholder="05xxxxxxxx أو +971..."
                 className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
               />
             </div>
@@ -150,7 +125,6 @@ export default async function RegisterPage({
               <input
                 name="email"
                 type="email"
-                placeholder="name@email.com"
                 className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
               />
             </div>
@@ -162,7 +136,6 @@ export default async function RegisterPage({
               <input
                 name="password"
                 type="password"
-                placeholder="******"
                 className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
               />
             </div>

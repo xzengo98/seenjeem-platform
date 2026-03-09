@@ -25,7 +25,7 @@ async function updateQuestion(formData: FormData) {
   const points = Number(formData.get("points") ?? 200);
   const isActive = formData.get("is_active") === "on";
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   await supabase
     .from("questions")
@@ -45,7 +45,7 @@ async function updateQuestion(formData: FormData) {
 
 export default async function EditQuestionPage({ params }: PageProps) {
   const { id } = await params;
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const [{ data: question, error: questionError }, { data: categories, error: categoriesError }] =
     await Promise.all([

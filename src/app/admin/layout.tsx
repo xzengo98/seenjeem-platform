@@ -18,7 +18,7 @@ const sidebarItems = [
 ];
 
 export default async function AdminLayout({ children }: AdminLayoutProps) {
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const {
     data: { user },

@@ -19,7 +19,7 @@ async function loginAction(formData: FormData) {
     redirect("/login?error=يرجى إدخال البريد الإلكتروني وكلمة المرور");
   }
 
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const { error } = await supabase.auth.signInWithPassword({
     email,

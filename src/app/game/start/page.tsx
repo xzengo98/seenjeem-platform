@@ -33,7 +33,7 @@ export default async function GameStartPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const supabase = getSupabaseServerClient();
+  const supabase = await getSupabaseServerClient();
 
   const {
     data: { user },
