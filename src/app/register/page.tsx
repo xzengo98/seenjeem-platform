@@ -2,47 +2,61 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-type LoginPageProps = {
+type RegisterPageProps = {
   searchParams: Promise<{
     error?: string;
     success?: string;
   }>;
 };
 
-async function loginAction(formData: FormData) {
+async function registerAction(formData: FormData) {
   "use server";
 
+  const fullName = String(formData.get("full_name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "").trim();
 
-  if (!email || !password) {
-    redirect("/login?error=يرجى إدخال البريد الإلكتروني وكلمة المرور");
+  if (!fullName || !email || !password) {
+    redirect("/register?error=يرجى تعبئة جميع الحقول");
+  }
+
+  if (password.length < 6) {
+    redirect("/register?error=كلمة المرور يجب أن تكون 6 أحرف على الأقل");
   }
 
   const supabase = getSupabaseServerClient();
 
-  const { error } = await supabase.auth.signInWithPassword({
+  const { error } = await supabase.auth.signUp({
     email,
     password,
+    options: {
+      data: {
+        full_name: fullName,
+      },
+    },
   });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent("بيانات الدخول غير صحيحة")}`);
+    redirect(`/register?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/");
+  redirect(
+    "/login?success=تم إنشاء الحساب بنجاح، يمكنك الآن تسجيل الدخول"
+  );
 }
 
-export default async function LoginPage({ searchParams }: LoginPageProps) {
+export default async function RegisterPage({
+  searchParams,
+}: RegisterPageProps) {
   const params = await searchParams;
 
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
       <div className="mx-auto max-w-xl">
         <div className="rounded-[2rem] border border-white/10 bg-white/5 p-8">
-          <h1 className="text-4xl font-black">تسجيل الدخول</h1>
+          <h1 className="text-4xl font-black">إنشاء حساب جديد</h1>
           <p className="mt-3 text-slate-300">
-            سجّل دخولك للوصول إلى حسابك وألعابك.
+            أنشئ حسابك للبدء في استخدام المنصة.
           </p>
 
           {params.error ? (
@@ -57,7 +71,18 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </div>
           ) : null}
 
-          <form action={loginAction} className="mt-8 space-y-5">
+          <form action={registerAction} className="mt-8 space-y-5">
+            <div>
+              <label className="mb-2 block text-sm font-bold text-slate-200">
+                الاسم الكامل
+              </label>
+              <input
+                name="full_name"
+                placeholder="اسمك الكامل"
+                className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
+              />
+            </div>
+
             <div>
               <label className="mb-2 block text-sm font-bold text-slate-200">
                 البريد الإلكتروني
@@ -86,14 +111,14 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
               type="submit"
               className="w-full rounded-2xl bg-cyan-400 px-6 py-3 font-black text-slate-950"
             >
-              تسجيل الدخول
+              إنشاء الحساب
             </button>
           </form>
 
           <div className="mt-6 text-sm text-slate-300">
-            ليس لديك حساب؟{" "}
-            <Link href="/register" className="font-bold text-cyan-300">
-              إنشاء حساب جديد
+            لديك حساب بالفعل؟{" "}
+            <Link href="/login" className="font-bold text-cyan-300">
+              تسجيل الدخول
             </Link>
           </div>
         </div>
