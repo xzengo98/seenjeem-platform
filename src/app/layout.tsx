@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Navbar from "@/components/layout/navbar";
 
 export const metadata: Metadata = {
   title: "SeenJeem Platform",
@@ -14,6 +15,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <body className="bg-slate-950 text-white antialiased">
+        <Navbar />
         {children}
       </body>
     </html>
