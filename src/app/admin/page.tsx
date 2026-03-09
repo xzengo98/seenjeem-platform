@@ -37,6 +37,8 @@ export default async function AdminPage() {
     { label: "إضافة فئة جديدة", href: "/admin/categories/new" },
     { label: "إدارة الأسئلة", href: "/admin/questions" },
     { label: "إضافة سؤال جديد", href: "/admin/questions/new" },
+    { label: "الاعضاء", href: "/admin/users" },
+
   ];
 
   return (
