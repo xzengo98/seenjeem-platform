@@ -1,71 +1,41 @@
-"use client";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { getSupabaseClient } from "@/lib/supabase/client";
+export const dynamic = "force-dynamic";
 
-export default function NewCategoryPage() {
-  const router = useRouter();
+async function createCategory(formData: FormData) {
+  "use server";
 
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [description, setDescription] = useState("");
-  const [sortOrder, setSortOrder] = useState("0");
-  const [isActive, setIsActive] = useState(true);
+  const name = String(formData.get("name") ?? "").trim();
+  const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
+  const description = String(formData.get("description") ?? "").trim();
+  const sortOrder = Number(formData.get("sort_order") ?? 0);
+  const isActive = formData.get("is_active") === "on";
 
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMessage("");
-    setSuccessMessage("");
-
-    const cleanName = name.trim();
-    const cleanSlug = slug.trim().toLowerCase();
-    const cleanDescription = description.trim();
-    const parsedSortOrder = Number(sortOrder);
-
-    if (!cleanName || !cleanSlug) {
-      setErrorMessage("اسم الفئة و slug مطلوبين.");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const supabase = getSupabaseClient();
-
-      const { error } = await supabase.from("categories").insert({
-        name: cleanName,
-        slug: cleanSlug,
-        description: cleanDescription || null,
-        sort_order: Number.isNaN(parsedSortOrder) ? 0 : parsedSortOrder,
-        is_active: isActive,
-      });
-
-      if (error) {
-        setErrorMessage(error.message);
-        setLoading(false);
-        return;
-      }
-
-      setSuccessMessage("تمت إضافة الفئة بنجاح.");
-      setLoading(false);
-
-      setTimeout(() => {
-        router.push("/admin/categories");
-        router.refresh();
-      }, 800);
-    } catch (error) {
-      setErrorMessage(
-        error instanceof Error ? error.message : "حدث خطأ غير معروف."
-      );
-      setLoading(false);
-    }
+  if (!name || !slug) {
+    throw new Error("اسم الفئة و slug مطلوبين.");
   }
 
+  const supabase = getSupabaseServerClient();
+
+  const { error } = await supabase.from("categories").insert({
+    name,
+    slug,
+    description: description || null,
+    sort_order: Number.isNaN(sortOrder) ? 0 : sortOrder,
+    is_active: isActive,
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  revalidatePath("/admin/categories");
+  redirect("/admin/categories");
+}
+
+export default function NewCategoryPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -85,7 +55,7 @@ export default function NewCategoryPage() {
       </div>
 
       <form
-        onSubmit={handleSubmit}
+        action={createCategory}
         className="rounded-[2rem] border border-white/10 bg-white/5 p-6"
       >
         <div className="grid gap-6 md:grid-cols-2">
@@ -94,9 +64,8 @@ export default function NewCategoryPage() {
               اسم الفئة
             </label>
             <input
+              name="name"
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
               placeholder="مثال: تاريخ"
               className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
             />
@@ -107,9 +76,8 @@ export default function NewCategoryPage() {
               Slug
             </label>
             <input
+              name="slug"
               type="text"
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
               placeholder="example: history"
               className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
             />
@@ -120,8 +88,7 @@ export default function NewCategoryPage() {
               الوصف
             </label>
             <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              name="description"
               placeholder="وصف مختصر للفئة"
               rows={4}
               className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
@@ -133,9 +100,9 @@ export default function NewCategoryPage() {
               الترتيب
             </label>
             <input
+              name="sort_order"
               type="number"
-              value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
+              defaultValue={0}
               className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
             />
           </div>
@@ -143,9 +110,9 @@ export default function NewCategoryPage() {
           <div className="flex items-center gap-3 pt-8">
             <input
               id="is_active"
+              name="is_active"
               type="checkbox"
-              checked={isActive}
-              onChange={(e) => setIsActive(e.target.checked)}
+              defaultChecked
               className="h-5 w-5"
             />
             <label
@@ -157,25 +124,12 @@ export default function NewCategoryPage() {
           </div>
         </div>
 
-        {errorMessage ? (
-          <div className="mt-6 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-red-200">
-            {errorMessage}
-          </div>
-        ) : null}
-
-        {successMessage ? (
-          <div className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-emerald-200">
-            {successMessage}
-          </div>
-        ) : null}
-
         <div className="mt-8 flex flex-wrap gap-4">
           <button
             type="submit"
-            disabled={loading}
-            className="rounded-2xl bg-cyan-400 px-6 py-3 font-bold text-slate-950 disabled:opacity-60"
+            className="rounded-2xl bg-cyan-400 px-6 py-3 font-bold text-slate-950"
           >
-            {loading ? "جارٍ الحفظ..." : "حفظ الفئة"}
+            حفظ الفئة
           </button>
 
           <a
