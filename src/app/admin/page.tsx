@@ -1,3 +1,4 @@
+import Link from "next/link";
 import AdminPageHeader from "@/components/admin/admin-page-header";
 import AdminStatCard from "@/components/admin/admin-stat-card";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -57,13 +58,13 @@ export default async function AdminPage() {
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {quickLinks.map((item) => (
-            <a
+            <Link
               key={item.href}
               href={item.href}
               className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-4 font-semibold text-slate-200 transition hover:bg-white/5 hover:text-white"
             >
               {item.label}
-            </a>
+            </Link>
           ))}
         </div>
       </section>
