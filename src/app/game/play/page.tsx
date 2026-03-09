@@ -3,23 +3,28 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
+type CategoryRelation =
+  | {
+      name: string;
+      slug: string;
+    }
+  | {
+      name: string;
+      slug: string;
+    }[]
+  | null;
+
 type Question = {
   id: string;
   question_text: string;
-  difficulty: string;
+  answer_text: string | null;
+  points: number;
   is_active: boolean;
-  categories: {
-    name: string;
-    slug: string;
-  } | {
-    name: string;
-    slug: string;
-  }[] | null;
+  is_used: boolean;
+  categories: CategoryRelation;
 };
 
-function getCategoryName(
-  categories: Question["categories"]
-): string {
+function getCategoryName(categories: CategoryRelation): string {
   if (!categories) return "بدون فئة";
   if (Array.isArray(categories)) return categories[0]?.name ?? "بدون فئة";
   return categories.name;
@@ -64,8 +69,10 @@ export default async function GamePlayPage({
       `
       id,
       question_text,
-      difficulty,
+      answer_text,
+      points,
       is_active,
+      is_used,
       categories (
         name,
         slug
@@ -74,9 +81,9 @@ export default async function GamePlayPage({
     )
     .eq("is_active", true)
     .eq("categories.slug", selectedCategory)
-    .order("created_at", { ascending: false });
+    .order("points", { ascending: true });
 
-  const questions = (data ?? []) as Question[];
+  const questions = (data ?? []) as unknown as Question[];
 
   return (
     <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
@@ -85,7 +92,8 @@ export default async function GamePlayPage({
           <div>
             <h1 className="text-4xl font-black">اللعبة</h1>
             <p className="mt-3 text-slate-300">
-              الفئة الحالية: <span className="text-cyan-300">{selectedCategory}</span>
+              الفئة الحالية:{" "}
+              <span className="text-cyan-300">{selectedCategory}</span>
             </p>
           </div>
 
@@ -120,7 +128,10 @@ export default async function GamePlayPage({
                     {getCategoryName(question.categories)}
                   </span>
                   <span className="rounded-full bg-slate-900/70 px-3 py-1">
-                    {question.difficulty}
+                    {question.points} نقطة
+                  </span>
+                  <span className="rounded-full bg-slate-900/70 px-3 py-1">
+                    {question.is_used ? "مستخدم" : "غير مستخدم"}
                   </span>
                 </div>
 
@@ -128,10 +139,12 @@ export default async function GamePlayPage({
                   {question.question_text}
                 </h2>
 
-                <p className="mt-4 text-slate-400">
-                  هذه المرحلة تعرض السؤال الحقيقي من قاعدة البيانات. الخطوة التالية
-                  سنضيف خيارات الإجابة ونظام احتساب النقاط.
-                </p>
+                <div className="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4">
+                  <div className="text-sm text-cyan-300">الإجابة</div>
+                  <div className="mt-2 text-lg font-bold text-white">
+                    {question.answer_text ?? "لا توجد إجابة"}
+                  </div>
+                </div>
               </div>
             ))}
           </div>
