@@ -2,6 +2,7 @@ import AdminEmptyState from "@/components/admin/admin-empty-state";
 import AdminPageHeader from "@/components/admin/admin-page-header";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import Image from "next/image";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -14,32 +15,33 @@ type CategoryRow = {
   sort_order: number;
   is_active: boolean;
   category_sections:
-    | {
-        name: string;
-        slug: string;
-      }
-    | {
-        name: string;
-        slug: string;
-      }[]
+    | { name: string; slug: string }
+    | { name: string; slug: string }[]
     | null;
 };
 
 function getSectionName(
   section:
-    | {
-        name: string;
-        slug: string;
-      }
-    | {
-        name: string;
-        slug: string;
-      }[]
+    | { name: string; slug: string }
+    | { name: string; slug: string }[]
     | null
 ) {
   if (!section) return "بدون قسم";
   if (Array.isArray(section)) return section[0]?.name ?? "بدون قسم";
   return section.name;
+}
+
+async function deleteCategory(formData: FormData) {
+  "use server";
+
+  const id = String(formData.get("id") ?? "");
+  const supabase = getSupabaseServerClient();
+
+  await supabase.from("questions").delete().eq("category_id", id);
+  await supabase.from("categories").delete().eq("id", id);
+
+  revalidatePath("/admin/categories");
+  revalidatePath("/game/start");
 }
 
 export default async function AdminCategoriesPage() {
@@ -84,7 +86,7 @@ export default async function AdminCategoriesPage() {
       <div className="space-y-8">
         <AdminPageHeader
           title="إدارة الفئات"
-          description="إدارة الفئات مع الأقسام والصور والوصف والترتيب."
+          description="إدارة الفئات وربطها بالأقسام والصور."
           action={
             <a
               href="/admin/categories/new"
@@ -139,6 +141,25 @@ export default async function AdminCategoriesPage() {
                       {category.is_active ? "مفعّلة" : "غير مفعّلة"}
                     </span>
                   </div>
+                </div>
+
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <a
+                    href={`/admin/categories/edit/${category.id}`}
+                    className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-semibold text-cyan-300"
+                  >
+                    تعديل
+                  </a>
+
+                  <form action={deleteCategory}>
+                    <input type="hidden" name="id" value={category.id} />
+                    <button
+                      type="submit"
+                      className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-3 font-semibold text-red-300"
+                    >
+                      حذف
+                    </button>
+                  </form>
                 </div>
               </div>
             ))}

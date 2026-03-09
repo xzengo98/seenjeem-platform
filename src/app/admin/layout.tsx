@@ -1,82 +1,72 @@
-import { ReactNode } from "react";
+import AdminPageHeader from "@/components/admin/admin-page-header";
+import AdminStatCard from "@/components/admin/admin-stat-card";
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
-type AdminLayoutProps = {
-  children: ReactNode;
-};
+export const dynamic = "force-dynamic";
 
-const sidebarItems = [
-  { label: "الرئيسية", href: "/admin" },
-  { label: "الأقسام الرئيسية", href: "/admin/sections" },
-  { label: "الفئات", href: "/admin/categories" },
-  { label: "الأسئلة", href: "/admin/questions" },
-  { label: "إضافة قسم جديد", href: "/admin/sections/new" },
-  { label: "إضافة فئة جديدة", href: "/admin/categories/new" },
-  { label: "إضافة سؤال جديد", href: "/admin/questions/new" },
-];
+export default async function AdminPage() {
+  const supabase = getSupabaseServerClient();
 
-export default function AdminLayout({ children }: AdminLayoutProps) {
+  const [
+    sectionsResult,
+    categoriesResult,
+    activeCategoriesResult,
+    questionsResult,
+  ] = await Promise.all([
+    supabase
+      .from("category_sections")
+      .select("*", { count: "exact", head: true }),
+    supabase.from("categories").select("*", { count: "exact", head: true }),
+    supabase
+      .from("categories")
+      .select("*", { count: "exact", head: true })
+      .eq("is_active", true),
+    supabase.from("questions").select("*", { count: "exact", head: true }),
+  ]);
+
+  const sectionsCount = sectionsResult.count ?? 0;
+  const categoriesCount = categoriesResult.count ?? 0;
+  const activeCategoriesCount = activeCategoriesResult.count ?? 0;
+  const questionsCount = questionsResult.count ?? 0;
+
+  const quickLinks = [
+    { label: "إدارة الأقسام الرئيسية", href: "/admin/sections" },
+    { label: "إضافة قسم جديد", href: "/admin/sections/new" },
+    { label: "إدارة الفئات", href: "/admin/categories" },
+    { label: "إضافة فئة جديدة", href: "/admin/categories/new" },
+    { label: "إدارة الأسئلة", href: "/admin/questions" },
+    { label: "إضافة سؤال جديد", href: "/admin/questions/new" },
+  ];
+
   return (
-    <main className="min-h-screen bg-slate-950 text-white">
-      <div className="grid min-h-screen md:grid-cols-[300px_1fr]">
-        <aside className="border-l border-white/10 bg-slate-900/60 p-6">
-          <div className="mb-8">
-            <a href="/" className="text-3xl font-black text-cyan-400">
-              SeenJeem Admin
-            </a>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              لوحة إدارة المشروع الخاصة بالأقسام والفئات والأسئلة وإعداد بنية
-              اللعبة.
-            </p>
-          </div>
+    <div className="space-y-8">
+      <AdminPageHeader
+        title="لوحة التحكم الرئيسية"
+        description="إدارة الأقسام الرئيسية والفئات والأسئلة والمحتوى الأساسي للعبة من مكان واحد."
+      />
 
-          <div className="mb-4 text-xs font-bold uppercase tracking-widest text-slate-500">
-            التنقل السريع
-          </div>
+      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+        <AdminStatCard label="إجمالي الأقسام الرئيسية" value={String(sectionsCount)} />
+        <AdminStatCard label="إجمالي الفئات" value={String(categoriesCount)} />
+        <AdminStatCard label="الفئات المفعّلة" value={String(activeCategoriesCount)} />
+        <AdminStatCard label="إجمالي الأسئلة" value={String(questionsCount)} />
+      </section>
 
-          <nav className="space-y-2">
-            {sidebarItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="block rounded-2xl px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
-              >
-                {item.label}
-              </a>
-            ))}
-          </nav>
+      <section className="rounded-[2rem] border border-white/10 bg-white/5 p-6">
+        <h3 className="text-2xl font-black">إجراءات سريعة</h3>
 
-          <div className="mt-8 rounded-[2rem] border border-white/10 bg-white/5 p-4">
-            <div className="text-sm text-slate-400">المرحلة الحالية</div>
-            <div className="mt-2 text-lg font-bold text-cyan-300">
-              تجهيز لوحة الإدارة
-            </div>
-            <p className="mt-3 text-sm leading-6 text-slate-400">
-              يتم الآن تنظيم الأقسام الرئيسية والفئات والأسئلة قبل ربط حفظ
-              الجلسات والنقاط بشكل كامل.
-            </p>
-          </div>
-        </aside>
-
-        <section className="p-6 md:p-10">
-          <div className="mb-8 flex items-center justify-between rounded-[2rem] border border-white/10 bg-white/5 px-6 py-4">
-            <div>
-              <h1 className="text-2xl font-black">لوحة التحكم</h1>
-              <p className="mt-1 text-sm text-slate-400">
-                إدارة شاملة لهيكلة اللعبة والمحتوى الجاهز للإطلاق
-              </p>
-            </div>
-
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {quickLinks.map((item) => (
             <a
-              href="/"
-              className="rounded-2xl border border-white/10 px-4 py-2 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+              key={item.href}
+              href={item.href}
+              className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-4 font-semibold text-slate-200 transition hover:bg-white/5 hover:text-white"
             >
-              الرجوع للموقع
+              {item.label}
             </a>
-          </div>
-
-          {children}
-        </section>
-      </div>
-    </main>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }

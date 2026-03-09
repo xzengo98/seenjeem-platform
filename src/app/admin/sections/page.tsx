@@ -1,6 +1,7 @@
 import AdminEmptyState from "@/components/admin/admin-empty-state";
 import AdminPageHeader from "@/components/admin/admin-page-header";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,20 @@ type SectionRow = {
   sort_order: number;
   is_active: boolean;
 };
+
+async function deleteSection(formData: FormData) {
+  "use server";
+
+  const id = String(formData.get("id") ?? "");
+
+  const supabase = getSupabaseServerClient();
+
+  await supabase.from("categories").update({ section_id: null }).eq("section_id", id);
+  await supabase.from("category_sections").delete().eq("id", id);
+
+  revalidatePath("/admin/sections");
+  revalidatePath("/game/start");
+}
 
 export default async function AdminSectionsPage() {
   try {
@@ -43,7 +58,7 @@ export default async function AdminSectionsPage() {
       <div className="space-y-8">
         <AdminPageHeader
           title="إدارة الأقسام الرئيسية"
-          description="الأقسام الرئيسية التي تُعرض تحتها الفئات داخل صفحة بدء اللعبة."
+          description="إدارة الأقسام التي تُنظّم الفئات داخل صفحة بدء اللعبة."
           action={
             <a
               href="/admin/sections/new"
@@ -61,10 +76,13 @@ export default async function AdminSectionsPage() {
                 key={section.id}
                 className="rounded-[2rem] border border-white/10 bg-white/5 p-6"
               >
-                <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
                   <div>
                     <h3 className="text-2xl font-black">{section.name}</h3>
                     <p className="mt-2 text-cyan-300">{section.slug}</p>
+                    <p className="mt-4 text-slate-300">
+                      {section.description || "بدون وصف"}
+                    </p>
                   </div>
 
                   <div className="flex flex-wrap gap-3 text-sm text-slate-300">
@@ -77,9 +95,24 @@ export default async function AdminSectionsPage() {
                   </div>
                 </div>
 
-                <p className="mt-4 text-slate-300">
-                  {section.description || "بدون وصف"}
-                </p>
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <a
+                    href={`/admin/sections/edit/${section.id}`}
+                    className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-semibold text-cyan-300"
+                  >
+                    تعديل
+                  </a>
+
+                  <form action={deleteSection}>
+                    <input type="hidden" name="id" value={section.id} />
+                    <button
+                      type="submit"
+                      className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-3 font-semibold text-red-300"
+                    >
+                      حذف
+                    </button>
+                  </form>
+                </div>
               </div>
             ))}
           </div>

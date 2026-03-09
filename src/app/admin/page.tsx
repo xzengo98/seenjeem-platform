@@ -41,8 +41,8 @@ export default async function AdminPage() {
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="نظرة عامة"
-        description="هذه الصفحة أصبحت مركز الإدارة الفعلي للأقسام الرئيسية والفئات والأسئلة وتجهيز بنية اللعبة قبل الانتقال إلى حفظ الجلسات والنقاط."
+        title="لوحة التحكم الرئيسية"
+        description="إدارة الأقسام الرئيسية والفئات والأسئلة والمحتوى الأساسي للعبة من مكان واحد."
       />
 
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
@@ -52,48 +52,19 @@ export default async function AdminPage() {
         <AdminStatCard label="إجمالي الأسئلة" value={String(questionsCount)} />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6">
-          <h3 className="text-2xl font-black">إجراءات سريعة</h3>
+      <section className="rounded-[2rem] border border-white/10 bg-white/5 p-6">
+        <h3 className="text-2xl font-black">إجراءات سريعة</h3>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {quickLinks.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-4 font-semibold text-slate-200 transition hover:bg-white/5 hover:text-white"
-              >
-                {item.label}
-              </a>
-            ))}
-          </div>
-        </div>
-
-        <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6">
-          <h3 className="text-2xl font-black">ملخص النظام</h3>
-
-          <div className="mt-6 space-y-4">
-            <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-              <div className="text-sm text-slate-400">حالة المشروع</div>
-              <div className="mt-2 text-lg font-bold text-cyan-300">
-                لوحة الإدارة جاهزة مبدئيًا
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-              <div className="text-sm text-slate-400">ربط قاعدة البيانات</div>
-              <div className="mt-2 text-lg font-bold text-slate-200">
-                Supabase مرتبط ويعمل
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-4">
-              <div className="text-sm text-slate-400">المرحلة القادمة</div>
-              <div className="mt-2 text-lg font-bold text-slate-200">
-                حفظ الجلسات والنقاط والنتائج
-              </div>
-            </div>
-          </div>
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
+          {quickLinks.map((item) => (
+            <a
+              key={item.href}
+              href={item.href}
+              className="rounded-2xl border border-white/10 bg-slate-900/60 px-4 py-4 font-semibold text-slate-200 transition hover:bg-white/5 hover:text-white"
+            >
+              {item.label}
+            </a>
+          ))}
         </div>
       </section>
     </div>

@@ -1,185 +1,164 @@
+import AdminEmptyState from "@/components/admin/admin-empty-state";
 import AdminPageHeader from "@/components/admin/admin-page-header";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-type Category = {
+type CategoryRelation =
+  | { name: string; slug: string }
+  | { name: string; slug: string }[]
+  | null;
+
+type QuestionRow = {
   id: string;
-  name: string;
-  slug: string;
+  question_text: string;
+  answer_text: string | null;
+  points: number;
+  is_active: boolean;
+  is_used: boolean;
+  categories: CategoryRelation;
 };
 
-async function createQuestion(formData: FormData) {
-  "use server";
-
-  const categoryId = String(formData.get("category_id") ?? "").trim();
-  const questionText = String(formData.get("question_text") ?? "").trim();
-  const answerText = String(formData.get("answer_text") ?? "").trim();
-  const points = Number(formData.get("points") ?? 200);
-  const isActive = formData.get("is_active") === "on";
-
-  if (!categoryId || !questionText || !answerText) {
-    throw new Error("الفئة والسؤال والإجابة مطلوبة.");
-  }
-
-  const supabase = getSupabaseServerClient();
-
-  const { error } = await supabase.from("questions").insert({
-    category_id: categoryId,
-    question_text: questionText,
-    answer_text: answerText,
-    points: Number.isNaN(points) ? 200 : points,
-    is_active: isActive,
-    is_used: false,
-  });
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  revalidatePath("/admin/questions");
-  redirect("/admin/questions");
+function getCategoryName(categories: CategoryRelation) {
+  if (!categories) return "بدون فئة";
+  if (Array.isArray(categories)) return categories[0]?.name ?? "بدون فئة";
+  return categories.name;
 }
 
-export default async function NewQuestionPage() {
+async function deleteQuestion(formData: FormData) {
+  "use server";
+
+  const id = String(formData.get("id") ?? "");
   const supabase = getSupabaseServerClient();
 
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, name, slug")
-    .eq("is_active", true)
-    .order("sort_order", { ascending: true });
+  await supabase.from("questions").delete().eq("id", id);
 
-  if (error) {
+  revalidatePath("/admin/questions");
+  revalidatePath("/game/board");
+}
+
+export default async function AdminQuestionsPage() {
+  try {
+    const supabase = getSupabaseServerClient();
+
+    const { data, error } = await supabase
+      .from("questions")
+      .select(`
+        id,
+        question_text,
+        answer_text,
+        points,
+        is_active,
+        is_used,
+        categories (
+          name,
+          slug
+        )
+      `)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      return (
+        <div className="space-y-8">
+          <AdminPageHeader
+            title="إدارة الأسئلة"
+            description="حدث خطأ أثناء جلب الأسئلة من قاعدة البيانات."
+          />
+          <div className="rounded-[2rem] border border-red-500/20 bg-red-500/10 p-6 text-red-200">
+            فشل تحميل الأسئلة: {error.message}
+          </div>
+        </div>
+      );
+    }
+
+    const questions = (data ?? []) as unknown as QuestionRow[];
+
     return (
       <div className="space-y-8">
         <AdminPageHeader
-          title="إضافة سؤال"
-          description="حدث خطأ أثناء جلب الفئات من قاعدة البيانات."
+          title="إدارة الأسئلة"
+          description="إدارة الأسئلة والإجابات والنقاط الخاصة باللعبة."
+          action={
+            <a
+              href="/admin/questions/new"
+              className="rounded-2xl bg-cyan-400 px-5 py-3 font-bold text-slate-950"
+            >
+              إضافة سؤال
+            </a>
+          }
+        />
+
+        {questions.length > 0 ? (
+          <div className="grid gap-4">
+            {questions.map((question) => (
+              <div
+                key={question.id}
+                className="rounded-[2rem] border border-white/10 bg-white/5 p-6"
+              >
+                <h3 className="text-xl font-black">{question.question_text}</h3>
+
+                <p className="mt-3 text-slate-300">
+                  الإجابة: {question.answer_text ?? "غير مضافة"}
+                </p>
+
+                <div className="mt-3 flex flex-wrap gap-3 text-sm text-slate-300">
+                  <span className="rounded-full bg-slate-900/70 px-3 py-1">
+                    {getCategoryName(question.categories)}
+                  </span>
+                  <span className="rounded-full bg-slate-900/70 px-3 py-1">
+                    {question.points} نقطة
+                  </span>
+                  <span className="rounded-full bg-slate-900/70 px-3 py-1">
+                    {question.is_active ? "مفعّل" : "غير مفعّل"}
+                  </span>
+                  <span className="rounded-full bg-slate-900/70 px-3 py-1">
+                    {question.is_used ? "مستخدم" : "غير مستخدم"}
+                  </span>
+                </div>
+
+                <div className="mt-6 flex flex-wrap gap-3">
+                  <a
+                    href={`/admin/questions/edit/${question.id}`}
+                    className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-5 py-3 font-semibold text-cyan-300"
+                  >
+                    تعديل
+                  </a>
+
+                  <form action={deleteQuestion}>
+                    <input type="hidden" name="id" value={question.id} />
+                    <button
+                      type="submit"
+                      className="rounded-2xl border border-red-500/20 bg-red-500/10 px-5 py-3 font-semibold text-red-300"
+                    >
+                      حذف
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <AdminEmptyState
+            title="لا توجد أسئلة بعد"
+            description="أضف أول سؤال شفهي مع الإجابة والنقاط."
+            buttonText="إضافة أول سؤال"
+          />
+        )}
+      </div>
+    );
+  } catch (error) {
+    return (
+      <div className="space-y-8">
+        <AdminPageHeader
+          title="إدارة الأسئلة"
+          description="حدث خطأ أثناء جلب البيانات من قاعدة البيانات."
         />
         <div className="rounded-[2rem] border border-red-500/20 bg-red-500/10 p-6 text-red-200">
-          فشل تحميل الفئات: {error.message}
+          فشل تحميل الأسئلة:{" "}
+          {error instanceof Error ? error.message : "Unknown error"}
         </div>
       </div>
     );
   }
-
-  const categories = (data ?? []) as Category[];
-
-  return (
-    <div className="space-y-8">
-      <AdminPageHeader
-        title="إضافة سؤال جديد"
-        description="أضف سؤالًا شفهيًا مع الإجابة والنقاط واربطه بإحدى الفئات."
-        action={
-          <a
-            href="/admin/questions"
-            className="rounded-2xl border border-white/10 px-5 py-3 font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
-          >
-            الرجوع للأسئلة
-          </a>
-        }
-      />
-
-      <form
-        action={createQuestion}
-        className="rounded-[2rem] border border-white/10 bg-white/5 p-6"
-      >
-        <div className="grid gap-6 md:grid-cols-2">
-          <div className="md:col-span-2">
-            <label className="mb-2 block text-sm font-bold text-slate-200">
-              نص السؤال
-            </label>
-            <textarea
-              name="question_text"
-              placeholder="اكتب السؤال هنا"
-              rows={4}
-              className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <label className="mb-2 block text-sm font-bold text-slate-200">
-              الإجابة
-            </label>
-            <textarea
-              name="answer_text"
-              placeholder="اكتب الإجابة الصحيحة هنا"
-              rows={3}
-              className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-bold text-slate-200">
-              الفئة
-            </label>
-            <select
-              name="category_id"
-              defaultValue=""
-              className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
-            >
-              <option value="" disabled>
-                اختر الفئة
-              </option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name} ({category.slug})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-bold text-slate-200">
-              النقاط
-            </label>
-            <select
-              name="points"
-              defaultValue="200"
-              className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-white outline-none"
-            >
-              <option value="200">200</option>
-              <option value="400">400</option>
-              <option value="600">600</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-3 pt-8">
-            <input
-              id="is_active"
-              name="is_active"
-              type="checkbox"
-              defaultChecked
-              className="h-5 w-5"
-            />
-            <label
-              htmlFor="is_active"
-              className="text-sm font-semibold text-slate-200"
-            >
-              السؤال مفعّل
-            </label>
-          </div>
-        </div>
-
-        <div className="mt-8 flex flex-wrap gap-4">
-          <button
-            type="submit"
-            className="rounded-2xl bg-cyan-400 px-6 py-3 font-bold text-slate-950"
-          >
-            حفظ السؤال
-          </button>
-
-          <a
-            href="/admin/questions"
-            className="rounded-2xl border border-white/10 px-6 py-3 font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
-          >
-            إلغاء
-          </a>
-        </div>
-      </form>
-    </div>
-  );
 }
