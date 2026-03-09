@@ -30,7 +30,7 @@ async function loginAction(formData: FormData) {
     redirect("/login?error=بيانات الدخول غير صحيحة");
   }
 
-  redirect("/");
+  redirect("/game/start");
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {

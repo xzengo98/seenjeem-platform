@@ -47,11 +47,12 @@ export default async function HomePage() {
 
               <div className="flex flex-wrap items-center justify-center gap-4">
                 <Link
-                  href="/game/start"
-                  className="rounded-[2rem] bg-cyan-400 px-8 py-4 text-xl font-black text-slate-950"
-                >
-                  ابدأ الآن
-                </Link>
+  href="/game/start"
+  prefetch={false}
+  className="rounded-[2rem] bg-cyan-400 px-8 py-4 text-xl font-black text-slate-950"
+>
+  ابدأ الآن
+</Link>
 
                 <Link
                   href="/pricing"

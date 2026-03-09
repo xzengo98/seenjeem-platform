@@ -39,11 +39,12 @@ export default async function Navbar() {
           {user ? (
             <>
               <Link
-                href="/game/start"
-                className="rounded-2xl bg-cyan-400 px-5 py-2 font-bold text-slate-950"
-              >
-                ابدأ الآن
-              </Link>
+  href="/game/start"
+  prefetch={false}
+  className="rounded-2xl bg-cyan-400 px-5 py-2 font-bold text-slate-950"
+>
+  ابدأ الآن
+</Link>
 
               <Link
                 href="/logout"
