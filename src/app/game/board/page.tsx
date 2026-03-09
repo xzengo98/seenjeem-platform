@@ -1,7 +1,20 @@
+import { redirect } from "next/navigation";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 import GameBoardClient from "./game-board-client";
 
-export const dynamic = "force-dynamic";
+type SearchParams = Promise<{
+  sessionId?: string;
+}>;
+
+type SessionRow = {
+  id: string;
+  user_id: string;
+  game_name: string;
+  team_one_name: string;
+  team_two_name: string;
+  selected_categories: string[] | null;
+  status: string;
+};
 
 type Category = {
   id: string;
@@ -20,93 +33,89 @@ type QuestionRow = {
   category_id: string;
 };
 
-type PageProps = {
-  searchParams: Promise<{
-    gameName?: string;
-    teamOne?: string;
-    teamTwo?: string;
-    categories?: string;
-  }>;
-};
+export const dynamic = "force-dynamic";
 
-export default async function GameBoardPage({ searchParams }: PageProps) {
+export default async function GameBoardPage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const params = await searchParams;
+  const sessionId = params.sessionId;
 
-  const gameName = (params.gameName ?? "").trim();
-  const teamOne = (params.teamOne ?? "").trim();
-  const teamTwo = (params.teamTwo ?? "").trim();
-  const categorySlugs = (params.categories ?? "")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-
-  if (!gameName || !teamOne || !teamTwo || categorySlugs.length === 0) {
-    return (
-      <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
-        <div className="mx-auto max-w-4xl rounded-[2rem] border border-white/10 bg-white/5 p-8">
-          <h1 className="text-3xl font-black">بيانات اللعبة غير مكتملة</h1>
-          <p className="mt-4 text-slate-300">
-            ارجع إلى صفحة بدء اللعبة وأدخل اسم اللعبة واسمَي الفريقين واختر الفئات.
-          </p>
-          <a
-            href="/game/start"
-            className="mt-6 inline-block rounded-2xl bg-cyan-400 px-5 py-3 font-bold text-slate-950"
-          >
-            الرجوع لبدء اللعبة
-          </a>
-        </div>
-      </main>
-    );
+  if (!sessionId) {
+    redirect("/game/start");
   }
 
   const supabase = await getSupabaseServerClient();
 
-  const { data: categoriesData, error: categoriesError } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: session, error: sessionError } = await supabase
+    .from("game_sessions")
+    .select("id, user_id, game_name, team_one_name, team_two_name, selected_categories, status")
+    .eq("id", sessionId)
+    .eq("user_id", user.id)
+    .single();
+
+  if (sessionError || !session) {
+    redirect("/game/start");
+  }
+
+  const typedSession = session as SessionRow;
+
+  if (typedSession.status !== "active") {
+    redirect("/game/result?sessionId=" + typedSession.id);
+  }
+
+  const selectedSlugs = Array.isArray(typedSession.selected_categories)
+    ? typedSession.selected_categories
+    : [];
+
+  if (selectedSlugs.length === 0) {
+    redirect("/game/start");
+  }
+
+  const { data: categoriesData } = await supabase
     .from("categories")
     .select("id, name, slug, image_url")
-    .in("slug", categorySlugs)
-    .eq("is_active", true);
-
-  if (categoriesError) {
-    return (
-      <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
-        <div className="mx-auto max-w-4xl rounded-[2rem] border border-red-500/20 bg-red-500/10 p-8 text-red-200">
-          فشل تحميل الفئات: {categoriesError.message}
-        </div>
-      </main>
-    );
-  }
-
-  const categories = ((categoriesData ?? []) as Category[]).sort(
-    (a, b) => categorySlugs.indexOf(a.slug) - categorySlugs.indexOf(b.slug)
-  );
-
-  const categoryIds = categories.map((category) => category.id);
-
-  const { data: questionsData, error: questionsError } = await supabase
-    .from("questions")
-    .select("id, question_text, answer_text, points, is_active, is_used, category_id")
-    .in("category_id", categoryIds)
+    .in("slug", selectedSlugs)
     .eq("is_active", true)
-    .order("points", { ascending: true });
+    .order("sort_order", { ascending: true });
 
-  if (questionsError) {
-    return (
-      <main className="min-h-screen bg-slate-950 px-6 py-20 text-white">
-        <div className="mx-auto max-w-4xl rounded-[2rem] border border-red-500/20 bg-red-500/10 p-8 text-red-200">
-          فشل تحميل الأسئلة: {questionsError.message}
-        </div>
-      </main>
-    );
-  }
+  const categories: Category[] = Array.isArray(categoriesData)
+    ? (categoriesData as Category[])
+    : [];
 
-  const questions = (questionsData ?? []) as QuestionRow[];
+  const categoryIds = categories.map((item) => item.id);
+
+  const { data: questionsData } =
+    categoryIds.length > 0
+      ? await supabase
+          .from("questions")
+          .select(
+            "id, question_text, answer_text, points, is_active, is_used, category_id"
+          )
+          .in("category_id", categoryIds)
+          .eq("is_active", true)
+      : { data: [] as QuestionRow[] };
+
+  const questions: QuestionRow[] = Array.isArray(questionsData)
+    ? (questionsData as QuestionRow[])
+    : [];
 
   return (
     <GameBoardClient
-      gameName={gameName}
-      teamOne={teamOne}
-      teamTwo={teamTwo}
+      sessionId={typedSession.id}
+      gameName={typedSession.game_name}
+      teamOne={typedSession.team_one_name}
+      teamTwo={typedSession.team_two_name}
       categories={categories}
       questions={questions}
     />

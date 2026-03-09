@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Category = {
   id: string;
@@ -45,6 +46,7 @@ export default function StartGameForm({
   const [teamTwo, setTeamTwo] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const safeSections = Array.isArray(sections) ? sections : [];
   const safeCategories = Array.isArray(categories) ? categories : [];
@@ -68,7 +70,7 @@ export default function StartGameForm({
     );
   }
 
-  function handleStartGame() {
+  async function handleStartGame() {
     setErrorMessage("");
 
     const cleanGameName = gameName.trim();
@@ -85,11 +87,43 @@ export default function StartGameForm({
       return;
     }
 
+    setLoading(true);
+
+    const supabase = getSupabaseBrowserClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setLoading(false);
+      setErrorMessage("يجب تسجيل الدخول أولًا.");
+      router.push("/login");
+      return;
+    }
+
+    const { data: sessionId, error } = await supabase.rpc("start_game_session", {
+      p_user_id: user.id,
+      p_game_name: cleanGameName,
+      p_team_one_name: cleanTeamOne,
+      p_team_two_name: cleanTeamTwo,
+      p_selected_categories: selectedCategories,
+      p_board_state: {},
+    });
+
+    setLoading(false);
+
+    if (error || !sessionId) {
+      setErrorMessage(
+        error?.message === "NO_GAMES_REMAINING"
+          ? "لا توجد ألعاب متبقية في رصيدك."
+          : "فشل إنشاء جلسة اللعبة."
+      );
+      return;
+    }
+
     const params = new URLSearchParams({
-      gameName: cleanGameName,
-      teamOne: cleanTeamOne,
-      teamTwo: cleanTeamTwo,
-      categories: selectedCategories.join(","),
+      sessionId: String(sessionId),
     });
 
     router.push(`/game/board?${params.toString()}`);
@@ -254,9 +288,10 @@ export default function StartGameForm({
         <button
           type="button"
           onClick={handleStartGame}
-          className="rounded-[2rem] bg-cyan-400 px-10 py-5 text-2xl font-black text-slate-950"
+          disabled={loading}
+          className="rounded-[2rem] bg-cyan-400 px-10 py-5 text-2xl font-black text-slate-950 disabled:opacity-60"
         >
-          ابدأ اللعبة
+          {loading ? "جارٍ إنشاء اللعبة..." : "ابدأ اللعبة"}
         </button>
       </div>
     </div>

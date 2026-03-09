@@ -23,6 +23,7 @@ type QuestionRow = {
 };
 
 type Props = {
+  sessionId: string;
   gameName: string;
   teamOne: string;
   teamTwo: string;
@@ -68,6 +69,7 @@ const categoryVisuals: Record<string, CategoryVisual> = {
 };
 
 export default function GameBoardClient({
+  sessionId,
   gameName,
   teamOne,
   teamTwo,
@@ -133,6 +135,7 @@ export default function GameBoardClient({
 
     if (allUsed && !openQuestion) {
       const params = new URLSearchParams({
+        sessionId,
         gameName,
         teamOne,
         teamTwo,
@@ -143,6 +146,7 @@ export default function GameBoardClient({
       router.push(`/game/result?${params.toString()}`);
     }
   }, [
+    sessionId,
     gameName,
     teamOne,
     teamTwo,
