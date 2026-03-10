@@ -168,7 +168,7 @@ export default async function AccountPage() {
 
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">
                 من هنا يمكنك مراجعة بيانات الحساب، متابعة الجلسات غير المكتملة،
-                وبدء لعبة جديدة بتجربة مرتبة ومناسبة لجميع الشاشات.
+                وبدء لعبة جديدة..
               </p>
 
               <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -220,7 +220,7 @@ export default async function AccountPage() {
           <SectionHeader
             eyebrow="بيانات الحساب"
             title="معلوماتك الأساسية"
-            description="تم ترتيب البيانات داخل بطاقات واضحة حتى تكون القراءة أسهل على الهاتف وسطح المكتب."
+            description="هنا تظهر جميع معلومات الخاصة بحسابك الشخصي :"
           />
 
           <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -229,7 +229,7 @@ export default async function AccountPage() {
             <InfoCard label="رقم الهاتف" value={phone} />
             <InfoCard label="الدور" value={role} />
             <InfoCard label="الألعاب المتبقية" value={String(gamesRemaining)} />
-            <InfoCard label="عدد الألعاب التي لعبها" value={String(gamesPlayed)} />
+            <InfoCard label="عدد الألعاب التي لعبتها" value={String(gamesPlayed)} />
             <InfoCard label="تاريخ إنشاء الحساب" value={createdAt} wide />
           </div>
         </section>
