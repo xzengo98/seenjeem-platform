@@ -75,8 +75,8 @@ const categoryVisuals: Record<string, CategoryVisual> = {
   },
 };
 
-const MOBILE_BOARD_WIDTH = 1320;
-const MOBILE_BOARD_HEIGHT = 470;
+const MOBILE_BOARD_BASE_WIDTH = 1160;
+const MOBILE_BOARD_BASE_HEIGHT = 560;
 
 export default function GameBoardClient({
   sessionId,
@@ -91,6 +91,7 @@ export default function GameBoardClient({
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const mobileBoardWrapRef = useRef<HTMLDivElement | null>(null);
 
   const [teamOneScore, setTeamOneScore] = useState(
     Number(initialBoardState?.teamOneScore ?? 0)
@@ -111,11 +112,14 @@ export default function GameBoardClient({
     Boolean(initialBoardState?.showWinnerPicker ?? false)
   );
   const [mobileScale, setMobileScale] = useState(1);
+  const [mobileBoardHeight, setMobileBoardHeight] = useState(
+    MOBILE_BOARD_BASE_HEIGHT
+  );
 
   const grouped = useMemo(() => {
     const targetPattern = [200, 200, 400, 400, 600, 600];
 
-    return categories.map((category) => {
+    return categories.slice(0, 6).map((category) => {
       const categoryQuestions = questions
         .filter((question) => question.category_id === category.id)
         .sort((a, b) => {
@@ -148,28 +152,8 @@ export default function GameBoardClient({
   }, [categories, questions]);
 
   useEffect(() => {
-    function updateScale() {
-      if (window.innerWidth >= 768) {
-        setMobileScale(1);
-        return;
-      }
-
-      const horizontalPadding = 12;
-      const availableWidth = window.innerWidth - horizontalPadding;
-      const nextScale = Math.min(availableWidth / MOBILE_BOARD_WIDTH, 1);
-      setMobileScale(nextScale);
-    }
-
-    updateScale();
-    window.addEventListener("resize", updateScale);
-    return () => window.removeEventListener("resize", updateScale);
-  }, []);
-
-  useEffect(() => {
     const openQuestionId = initialBoardState?.openQuestionId;
-
-    if (!openQuestionId) return;
-    if (openQuestion) return;
+    if (!openQuestionId || openQuestion) return;
 
     for (const category of grouped) {
       for (const row of category.rows) {
@@ -268,6 +252,46 @@ export default function GameBoardClient({
     showWinnerPicker,
   ]);
 
+  useEffect(() => {
+    function updateMobileScale() {
+      if (window.innerWidth >= 768) return;
+
+      const wrap = mobileBoardWrapRef.current;
+      const containerWidth = wrap?.clientWidth ?? window.innerWidth;
+
+      const viewportHeight = window.innerHeight;
+      const reservedHeight = 170;
+      const availableHeight = Math.max(viewportHeight - reservedHeight, 260);
+
+      const scaleByWidth = containerWidth / MOBILE_BOARD_BASE_WIDTH;
+      const scaleByHeight = availableHeight / MOBILE_BOARD_BASE_HEIGHT;
+      const nextScale = Math.min(scaleByWidth, scaleByHeight, 1);
+
+      setMobileScale(nextScale);
+      setMobileBoardHeight(MOBILE_BOARD_BASE_HEIGHT * nextScale);
+    }
+
+    updateMobileScale();
+
+    const resizeObserver =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(() => updateMobileScale())
+        : null;
+
+    if (mobileBoardWrapRef.current && resizeObserver) {
+      resizeObserver.observe(mobileBoardWrapRef.current);
+    }
+
+    window.addEventListener("resize", updateMobileScale);
+    window.addEventListener("orientationchange", updateMobileScale);
+
+    return () => {
+      window.removeEventListener("resize", updateMobileScale);
+      window.removeEventListener("orientationchange", updateMobileScale);
+      resizeObserver?.disconnect();
+    };
+  }, []);
+
   function openQuestionCard(
     question: QuestionRow,
     categoryName: string,
@@ -329,20 +353,20 @@ export default function GameBoardClient({
       ? "teamTwo"
       : "tie";
 
-  const mobileBoardHeight = MOBILE_BOARD_HEIGHT * mobileScale;
-
   return (
     <main className="min-h-screen overflow-x-hidden bg-slate-950 text-white">
       <div className="border-b border-white/10 bg-gradient-to-l from-white/10 via-white/5 to-transparent px-3 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4">
-        <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-3">
-          <Link
-            href="/game/start"
-            className="rounded-2xl border border-white/10 px-3 py-2 text-[11px] font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white sm:px-4 sm:text-sm md:hidden"
-          >
-            لعبة جديدة
-          </Link>
+        <div className="mx-auto flex max-w-[1700px] items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <Link
+              href="/game/start"
+              className="rounded-2xl border border-white/10 px-3 py-2 text-[11px] font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white md:hidden"
+            >
+              لعبة جديدة
+            </Link>
+          </div>
 
-          <div className="text-center md:text-right">
+          <div className="text-center">
             <div className="text-[10px] text-slate-400 sm:text-xs">اسم اللعبة</div>
             <div className="text-base font-black sm:text-lg md:text-3xl">
               {gameName}
@@ -365,38 +389,37 @@ export default function GameBoardClient({
           </div>
         </div>
 
-        <div className="mx-auto mt-3 flex max-w-[1500px] justify-center">
+        <div className="mx-auto mt-3 flex max-w-[1700px] justify-center">
           <div className="rounded-full bg-orange-400 px-4 py-2 text-center text-[11px] font-black text-slate-950 sm:px-6 sm:text-sm md:px-8 md:py-3 md:text-xl">
             الحكم هو من يحدد الفريق الصحيح
           </div>
         </div>
       </div>
 
-      {/* Mobile compact board */}
-      <div className="block px-1 py-2 md:hidden">
+      {/* Mobile */}
+      <div className="block px-2 py-3 md:hidden">
         <div
-          className="mx-auto"
-          style={{
-            height: mobileBoardHeight,
-            width: "100%",
-          }}
+          ref={mobileBoardWrapRef}
+          className="mx-auto w-full"
+          style={{ height: mobileBoardHeight }}
         >
           <div
+            className="mx-auto rounded-[24px] border border-white/10 bg-slate-950/80 p-3"
             style={{
-              width: MOBILE_BOARD_WIDTH,
-              height: MOBILE_BOARD_HEIGHT,
+              width: MOBILE_BOARD_BASE_WIDTH,
+              height: MOBILE_BOARD_BASE_HEIGHT,
               transform: `scale(${mobileScale})`,
               transformOrigin: "top center",
             }}
-            className="mx-auto rounded-[22px] border border-white/10 bg-slate-950/80 p-3"
           >
-            <CompactBoardLayout
+            <BoardContent
+              compact
               gameName={gameName}
-              leadingTeam={leadingTeam}
               teamOne={teamOne}
               teamTwo={teamTwo}
               teamOneScore={teamOneScore}
               teamTwoScore={teamTwoScore}
+              leadingTeam={leadingTeam}
               grouped={grouped}
               usedQuestionIds={usedQuestionIds}
               onOpenQuestion={openQuestionCard}
@@ -409,16 +432,16 @@ export default function GameBoardClient({
         </div>
       </div>
 
-      {/* Desktop board */}
+      {/* Desktop */}
       <div className="hidden px-4 py-5 md:block md:px-6">
-        <div className="mx-auto max-w-[1600px] rounded-[2rem] border border-white/10 bg-slate-950/70 p-5">
-          <CompactBoardLayout
+        <div className="mx-auto max-w-[1700px] rounded-[2rem] border border-white/10 bg-slate-950/70 p-5 xl:p-6">
+          <BoardContent
             gameName={gameName}
-            leadingTeam={leadingTeam}
             teamOne={teamOne}
             teamTwo={teamTwo}
             teamOneScore={teamOneScore}
             teamTwoScore={teamTwoScore}
+            leadingTeam={leadingTeam}
             grouped={grouped}
             usedQuestionIds={usedQuestionIds}
             onOpenQuestion={openQuestionCard}
@@ -426,7 +449,6 @@ export default function GameBoardClient({
             onDecTeamOne={decreaseTeamOneScore}
             onIncTeamTwo={increaseTeamTwoScore}
             onDecTeamTwo={decreaseTeamTwoScore}
-            desktop
           />
         </div>
       </div>
@@ -544,13 +566,13 @@ export default function GameBoardClient({
   );
 }
 
-function CompactBoardLayout({
+function BoardContent({
   gameName,
-  leadingTeam,
   teamOne,
   teamTwo,
   teamOneScore,
   teamTwoScore,
+  leadingTeam,
   grouped,
   usedQuestionIds,
   onOpenQuestion,
@@ -558,14 +580,14 @@ function CompactBoardLayout({
   onDecTeamOne,
   onIncTeamTwo,
   onDecTeamTwo,
-  desktop = false,
+  compact = false,
 }: {
   gameName: string;
-  leadingTeam: "teamOne" | "teamTwo" | "tie";
   teamOne: string;
   teamTwo: string;
   teamOneScore: number;
   teamTwoScore: number;
+  leadingTeam: "teamOne" | "teamTwo" | "tie";
   grouped: Array<{
     id: string;
     name: string;
@@ -589,49 +611,37 @@ function CompactBoardLayout({
   onDecTeamOne: () => void;
   onIncTeamTwo: () => void;
   onDecTeamTwo: () => void;
-  desktop?: boolean;
+  compact?: boolean;
 }) {
   return (
     <div className="h-full w-full">
-      <div className="mb-3 grid grid-cols-[1fr_auto_170px] items-center gap-3 border-b border-white/10 pb-2">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-slate-300"
-          >
-            ☰
-          </button>
-        </div>
-
-        <div className="text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-1 text-sm font-black text-cyan-300">
-            <span>لعبة</span>
-          </div>
-        </div>
-
-        <div className="text-left">
-          <div className="text-3xl font-black text-cyan-400">SeenJeem</div>
+      <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2">
+        <div className="text-4xl font-black text-cyan-400">SeenJeem</div>
+        <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-1 text-sm font-black text-cyan-300">
+          لعبة
         </div>
       </div>
 
       <div
-        className={`grid h-[390px] gap-3 ${
-          desktop
-            ? "grid-cols-[repeat(6,minmax(0,1fr))_170px]"
-            : "grid-cols-[repeat(6,1fr)_170px]"
+        className={`grid gap-4 ${
+          compact
+            ? "grid-cols-[repeat(6,1fr)_170px]"
+            : "grid-cols-[repeat(6,minmax(0,1fr))_220px]"
         }`}
       >
-        {grouped.slice(0, 6).map((category) => (
-          <CategoryBoardColumn
+        {grouped.map((category) => (
+          <BoardCategoryColumn
             key={category.id}
             category={category}
             usedQuestionIds={usedQuestionIds}
             onOpenQuestion={onOpenQuestion}
+            compact={compact}
           />
         ))}
 
-        <div className="flex h-full flex-col gap-3">
-          <SidebarTeamCard
+        <div className="flex flex-col gap-3">
+          <SideTeamCard
+            compact={compact}
             name={teamOne}
             score={teamOneScore}
             accent="cyan"
@@ -640,32 +650,47 @@ function CompactBoardLayout({
             onDecrease={onDecTeamOne}
           />
 
-          <SidebarTeamCard
+          <SideTeamCard
+            compact={compact}
             name={teamTwo}
             score={teamTwoScore}
-            accent="slate"
+            accent="orange"
             isLeading={leadingTeam === "teamTwo"}
             onIncrease={onIncTeamTwo}
             onDecrease={onDecTeamTwo}
           />
 
-          <div className="flex min-h-[56px] items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-3 text-center text-sm font-bold text-slate-300">
+          <div
+            className={`rounded-2xl border border-white/10 bg-white/5 px-3 text-center font-bold text-slate-300 ${
+              compact ? "py-3 text-sm" : "py-4 text-base"
+            }`}
+          >
             {leadingTeam === "tie"
               ? "لا يوجد متصدر حاليًا"
               : `المتصدر الآن: ${
                   leadingTeam === "teamOne" ? teamOne : teamTwo
                 }`}
           </div>
+
+          {!compact ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-center">
+              <div className="text-sm text-slate-400">الجولة الحالية</div>
+              <div className="mt-2 text-2xl font-black text-cyan-300">
+                {gameName}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
   );
 }
 
-function CategoryBoardColumn({
+function BoardCategoryColumn({
   category,
   usedQuestionIds,
   onOpenQuestion,
+  compact,
 }: {
   category: {
     id: string;
@@ -686,20 +711,31 @@ function CategoryBoardColumn({
     categoryName: string,
     slotIndex: number
   ) => void;
+  compact: boolean;
 }) {
   const visual = categoryVisuals[category.slug] ?? categoryVisuals.default;
 
   return (
-    <div className="flex h-full flex-col gap-2">
-      <div className="overflow-hidden rounded-[20px] border border-white/10 bg-slate-900/70">
+    <div className="flex flex-col gap-2">
+      <div
+        className={`overflow-hidden border border-white/10 bg-slate-900/70 ${
+          compact ? "rounded-[18px]" : "rounded-[22px]"
+        }`}
+      >
         <div
-          className={`relative h-[128px] bg-gradient-to-br ${visual.gradient}`}
+          className={`relative bg-gradient-to-br ${visual.gradient} ${
+            compact ? "h-[126px]" : "h-[168px]"
+          }`}
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_30%)]" />
 
           <div className="relative flex h-full items-center justify-center px-3">
             {category.image_url ? (
-              <div className="relative h-[72px] w-[72px]">
+              <div
+                className={`relative ${
+                  compact ? "h-[70px] w-[70px]" : "h-[95px] w-[95px]"
+                }`}
+              >
                 <Image
                   src={category.image_url}
                   alt={category.name}
@@ -708,12 +744,22 @@ function CategoryBoardColumn({
                 />
               </div>
             ) : (
-              <div className="text-5xl">{visual.emoji}</div>
+              <div className={compact ? "text-5xl" : "text-6xl"}>
+                {visual.emoji}
+              </div>
             )}
           </div>
 
-          <div className="absolute inset-x-0 bottom-0 border-t border-white/10 bg-slate-950/80 px-2 py-2 text-center">
-            <div className="line-clamp-2 text-[18px] font-black leading-6">
+          <div
+            className={`absolute inset-x-0 bottom-0 border-t border-white/10 bg-slate-950/80 px-2 text-center ${
+              compact ? "py-2" : "py-3"
+            }`}
+          >
+            <div
+              className={`line-clamp-2 font-black ${
+                compact ? "text-[18px] leading-6" : "text-[22px] leading-7"
+              }`}
+            >
               {category.name}
             </div>
           </div>
@@ -722,14 +768,15 @@ function CategoryBoardColumn({
 
       <div className="grid gap-2">
         {category.rows.map((row, rowIndex) => (
-          <div key={`${category.id}-row-${rowIndex}`} className="grid grid-cols-2 gap-2">
+          <div key={`${category.id}-${rowIndex}`} className="grid grid-cols-2 gap-2">
             {row.map((slot) => (
-              <CategoryPointButton
+              <BoardPointsButton
                 key={`${category.id}-${slot.slotIndex}`}
+                compact={compact}
                 slot={slot}
                 usedQuestionIds={usedQuestionIds}
-                onOpenQuestion={onOpenQuestion}
                 categoryName={category.name}
+                onOpenQuestion={onOpenQuestion}
               />
             ))}
           </div>
@@ -739,11 +786,12 @@ function CategoryBoardColumn({
   );
 }
 
-function CategoryPointButton({
+function BoardPointsButton({
   slot,
   usedQuestionIds,
-  onOpenQuestion,
   categoryName,
+  onOpenQuestion,
+  compact,
 }: {
   slot: {
     points: number;
@@ -751,12 +799,13 @@ function CategoryPointButton({
     slotIndex: number;
   };
   usedQuestionIds: string[];
+  categoryName: string;
   onOpenQuestion: (
     question: QuestionRow,
     categoryName: string,
     slotIndex: number
   ) => void;
-  categoryName: string;
+  compact: boolean;
 }) {
   const question = slot.question;
   const used = question ? usedQuestionIds.includes(question.id) : true;
@@ -768,7 +817,11 @@ function CategoryPointButton({
       onClick={() =>
         question && onOpenQuestion(question, categoryName, slot.slotIndex)
       }
-      className={`h-[48px] rounded-[14px] text-[22px] font-black transition ${
+      className={`font-black transition ${
+        compact
+          ? "h-[48px] rounded-[14px] text-[22px]"
+          : "h-[60px] rounded-[18px] text-[26px]"
+      } ${
         !question
           ? "cursor-not-allowed border border-white/5 bg-slate-900/30 text-slate-700"
           : used
@@ -781,20 +834,22 @@ function CategoryPointButton({
   );
 }
 
-function SidebarTeamCard({
+function SideTeamCard({
   name,
   score,
   accent,
   isLeading,
   onIncrease,
   onDecrease,
+  compact,
 }: {
   name: string;
   score: number;
-  accent: "cyan" | "slate";
+  accent: "cyan" | "orange";
   isLeading: boolean;
   onIncrease: () => void;
   onDecrease: () => void;
+  compact: boolean;
 }) {
   const theme =
     accent === "cyan"
@@ -807,26 +862,35 @@ function SidebarTeamCard({
             "border-cyan-400/30 bg-cyan-400/10 text-cyan-300 hover:bg-cyan-400/20",
         }
       : {
-          badge: "bg-slate-800 text-white",
+          badge: "bg-orange-400 text-slate-950",
           wrapper: isLeading
-            ? "border-orange-300/30 bg-orange-400/10 shadow-[0_0_28px_rgba(251,146,60,0.12)]"
+            ? "border-orange-300/40 bg-orange-400/10 shadow-[0_0_28px_rgba(251,146,60,0.14)]"
             : "border-white/10 bg-white/5",
           action:
             "border-orange-400/30 bg-orange-400/10 text-orange-300 hover:bg-orange-400/20",
         };
 
   return (
-    <div className={`rounded-[18px] border p-3 ${theme.wrapper}`}>
+    <div
+      className={`rounded-[18px] border ${theme.wrapper} ${
+        compact ? "p-3" : "p-4"
+      }`}
+    >
       <div className="mb-2 flex items-center justify-between gap-2">
-        <div className={`rounded-xl px-3 py-1.5 text-sm font-black ${theme.badge}`}>
+        <div
+          className={`rounded-xl font-black ${theme.badge} ${
+            compact ? "px-3 py-1.5 text-sm" : "px-4 py-2 text-base"
+          }`}
+        >
           {name}
         </div>
+
         {isLeading ? (
           <div className="rounded-full border border-amber-300/30 bg-amber-400/10 px-2 py-1 text-[10px] font-bold text-amber-200">
             متصدر
           </div>
         ) : (
-          <div className="h-[24px]" />
+          <div className="h-[22px]" />
         )}
       </div>
 
@@ -834,25 +898,37 @@ function SidebarTeamCard({
         <button
           type="button"
           onClick={onIncrease}
-          className={`flex h-9 w-9 items-center justify-center rounded-full border text-xl font-black transition ${theme.action}`}
+          className={`flex items-center justify-center rounded-full border font-black transition ${theme.action} ${
+            compact ? "h-9 w-9 text-xl" : "h-10 w-10 text-2xl"
+          }`}
         >
           +
         </button>
 
-        <div className="min-w-[64px] rounded-2xl border border-white/10 bg-slate-900/70 px-3 py-2 text-center">
-          <div className="text-4xl font-black">{score}</div>
+        <div
+          className={`rounded-2xl border border-white/10 bg-slate-900/70 text-center ${
+            compact ? "min-w-[64px] px-3 py-2" : "min-w-[86px] px-4 py-3"
+          }`}
+        >
+          <div className={compact ? "text-4xl font-black" : "text-5xl font-black"}>
+            {score}
+          </div>
         </div>
 
         <button
           type="button"
           onClick={onDecrease}
-          className={`flex h-9 w-9 items-center justify-center rounded-full border text-xl font-black transition ${theme.action}`}
+          className={`flex items-center justify-center rounded-full border font-black transition ${theme.action} ${
+            compact ? "h-9 w-9 text-xl" : "h-10 w-10 text-2xl"
+          }`}
         >
           −
         </button>
       </div>
 
-      <div className="mt-2 text-center text-xs text-slate-400">نقطة</div>
+      <div className={`mt-2 text-center text-slate-400 ${compact ? "text-xs" : "text-sm"}`}>
+        نقطة
+      </div>
     </div>
   );
 }
