@@ -1,45 +1,15 @@
 import { redirect } from "next/navigation";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
 import GameBoardClient from "./game-board-client";
-
-type SearchParams = Promise<{
-  sessionId?: string;
-}>;
-
-type SessionRow = {
-  id: string;
-  user_id: string;
-  game_name: string;
-  team_one_name: string;
-  team_two_name: string;
-  selected_categories: string[] | null;
-  board_state: Record<string, unknown> | null;
-  status: string;
-};
-
-type Category = {
-  id: string;
-  name: string;
-  slug: string;
-  image_url: string | null;
-};
-
-type QuestionRow = {
-  id: string;
-  question_text: string;
-  answer_text: string | null;
-  points: number;
-  is_active: boolean;
-  is_used: boolean;
-  category_id: string;
-};
+import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export default async function GameBoardPage({
   searchParams,
 }: {
-  searchParams: SearchParams;
+  searchParams: Promise<{
+    sessionId?: string;
+  }>;
 }) {
   const params = await searchParams;
   const sessionId = params.sessionId;
@@ -58,71 +28,56 @@ export default async function GameBoardPage({
     redirect("/login");
   }
 
-  const { data: session, error: sessionError } = await supabase
+  const { data: session } = await supabase
     .from("game_sessions")
-    .select(
-      "id, user_id, game_name, team_one_name, team_two_name, selected_categories, board_state, status"
-    )
+    .select("*")
     .eq("id", sessionId)
     .eq("user_id", user.id)
     .single();
 
-  if (sessionError || !session) {
+  if (!session) {
     redirect("/game/start");
   }
 
-  const typedSession = session as SessionRow;
-
-  if (typedSession.status !== "active") {
-    redirect(`/game/result?sessionId=${typedSession.id}`);
-  }
-
-  const selectedSlugs = Array.isArray(typedSession.selected_categories)
-    ? typedSession.selected_categories
+  const categoryIds = Array.isArray(session.selected_category_ids)
+    ? session.selected_category_ids
     : [];
 
-  if (selectedSlugs.length === 0) {
-    redirect("/game/start");
-  }
-
-  const { data: categoriesData } = await supabase
+  const { data: categories } = await supabase
     .from("categories")
     .select("id, name, slug, image_url")
-    .in("slug", selectedSlugs)
+    .in("id", categoryIds)
     .eq("is_active", true)
     .order("sort_order", { ascending: true });
 
-  const categories: Category[] = Array.isArray(categoriesData)
-    ? (categoriesData as Category[])
-    : [];
-
-  const categoryIds = categories.map((item) => item.id);
-
-  const { data: questionsData } =
-    categoryIds.length > 0
-      ? await supabase
-          .from("questions")
-          .select(
-            "id, question_text, answer_text, points, is_active, is_used, category_id"
-          )
-          .in("category_id", categoryIds)
-          .eq("is_active", true)
-      : { data: [] as QuestionRow[] };
-
-  const questions: QuestionRow[] = Array.isArray(questionsData)
-    ? (questionsData as QuestionRow[])
-    : [];
+  const { data: questions } = await supabase
+    .from("questions")
+    .select(`
+      id,
+      question_text,
+      answer_text,
+      points,
+      is_active,
+      is_used,
+      category_id,
+      media_type,
+      media_url,
+      year_tolerance_before,
+      year_tolerance_after
+    `)
+    .in("category_id", categoryIds)
+    .eq("is_active", true);
 
   return (
     <GameBoardClient
-      sessionId={typedSession.id}
+      sessionId={session.id}
       userId={user.id}
-      initialBoardState={typedSession.board_state ?? {}}
-      gameName={typedSession.game_name}
-      teamOne={typedSession.team_one_name}
-      teamTwo={typedSession.team_two_name}
-      categories={categories}
-      questions={questions}
+      initialBoardState={(session.board_state as Record<string, unknown>) ?? {}}
+      gameName={session.game_name}
+      teamOne={session.team_one_name}
+      teamTwo={session.team_two_name}
+      categories={categories ?? []}
+      questions={questions ?? []}
     />
   );
 }

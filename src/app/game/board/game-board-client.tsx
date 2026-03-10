@@ -5,6 +5,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  getYouTubeEmbedUrl,
+  isDirectImage,
+  isDirectVideo,
+} from "@/lib/media";
 
 type Category = {
   id: string;
@@ -21,6 +26,10 @@ type QuestionRow = {
   is_active: boolean;
   is_used: boolean;
   category_id: string;
+  media_type?: "none" | "image" | "video" | null;
+  media_url?: string | null;
+  year_tolerance_before?: number | null;
+  year_tolerance_after?: number | null;
 };
 
 type Props = {
@@ -482,9 +491,33 @@ export default function GameBoardClient({
                 </div>
 
                 <div className="rounded-[1.5rem] border border-orange-400/40 bg-[#35363a] px-4 py-6 text-center md:rounded-[2rem] md:px-6 md:py-10">
+                  {(openQuestion.year_tolerance_before ||
+                    openQuestion.year_tolerance_after) ? (
+                    <div className="mb-4 flex justify-center">
+                      <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-300">
+                        السماحية: قبل {openQuestion.year_tolerance_before ?? 0} /
+                        بعد {openQuestion.year_tolerance_after ?? 0} سنة
+                      </div>
+                    </div>
+                  ) : null}
+
                   <h2 className="text-xl font-black leading-[1.8] sm:text-2xl md:text-5xl md:leading-[1.7]">
                     {openQuestion.question_text}
                   </h2>
+
+                  {openQuestion.media_url ? (
+                    <div className="mt-6">
+                      <QuestionMedia
+                        mediaType={
+                          (openQuestion.media_type ?? "none") as
+                            | "none"
+                            | "image"
+                            | "video"
+                        }
+                        mediaUrl={openQuestion.media_url}
+                      />
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between md:gap-4">
@@ -508,7 +541,20 @@ export default function GameBoardClient({
             ) : showAnswer && !showWinnerPicker ? (
               <div className="space-y-5 md:space-y-8">
                 <div className="rounded-[1.5rem] border border-orange-400/40 bg-[#35363a] px-4 py-6 text-center md:rounded-[2rem] md:px-6 md:py-10">
-                  <div className="text-sm text-slate-300 md:text-lg">الإجابة الصحيحة</div>
+                  {(openQuestion.year_tolerance_before ||
+                    openQuestion.year_tolerance_after) ? (
+                    <div className="mb-4 flex justify-center">
+                      <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-300">
+                        السماحية المقبولة: قبل {openQuestion.year_tolerance_before ?? 0} /
+                        بعد {openQuestion.year_tolerance_after ?? 0} سنة
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <div className="text-sm text-slate-300 md:text-lg">
+                    الإجابة الصحيحة
+                  </div>
+
                   <h2 className="mt-4 text-2xl font-black leading-[1.7] sm:text-3xl md:mt-6 md:text-6xl md:leading-[1.5]">
                     {openQuestion.answer_text ?? "لا توجد إجابة"}
                   </h2>
@@ -635,7 +681,11 @@ function BoardContent({
   return (
     <div className="h-full w-full" dir="ltr">
       <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2">
-        <div className={`font-black text-cyan-400 ${compact ? "text-4xl" : "text-5xl"}`}>
+        <div
+          className={`font-black text-cyan-400 ${
+            compact ? "text-4xl" : "text-5xl"
+          }`}
+        >
           SeenJeem
         </div>
         <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-1 text-sm font-black text-cyan-300">
@@ -789,7 +839,10 @@ function BoardCategoryColumn({
 
       <div className="grid gap-2">
         {category.rows.map((row, rowIndex) => (
-          <div key={`${category.id}-${rowIndex}`} className="grid grid-cols-2 gap-2">
+          <div
+            key={`${category.id}-${rowIndex}`}
+            className="grid grid-cols-2 gap-2"
+          >
             {row.map((slot) => (
               <BoardPointsButton
                 key={`${category.id}-${slot.slotIndex}`}
@@ -933,7 +986,9 @@ function SideTeamCard({
         >
           <div
             className={
-              compact ? "text-[34px] font-black leading-none" : "text-5xl font-black"
+              compact
+                ? "text-[34px] font-black leading-none"
+                : "text-5xl font-black"
             }
           >
             {score}
@@ -951,9 +1006,76 @@ function SideTeamCard({
         </button>
       </div>
 
-      <div className={`mt-2 text-center text-slate-400 ${compact ? "text-xs" : "text-sm"}`}>
+      <div
+        className={`mt-2 text-center text-slate-400 ${
+          compact ? "text-xs" : "text-sm"
+        }`}
+      >
         نقطة
       </div>
     </div>
   );
+}
+
+function QuestionMedia({
+  mediaType,
+  mediaUrl,
+}: {
+  mediaType: "none" | "image" | "video";
+  mediaUrl: string;
+}) {
+  if (!mediaUrl || mediaType === "none") return null;
+
+  if (mediaType === "image") {
+    return (
+      <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-900/50 p-3">
+        <img
+          src={mediaUrl}
+          alt="Question media"
+          className="mx-auto max-h-[420px] w-auto max-w-full rounded-2xl object-contain"
+        />
+      </div>
+    );
+  }
+
+  if (mediaType === "video") {
+    const youtubeEmbed = getYouTubeEmbedUrl(mediaUrl);
+
+    if (youtubeEmbed) {
+      return (
+        <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-900/50 p-3">
+          <div className="relative aspect-video w-full overflow-hidden rounded-2xl">
+            <iframe
+              src={youtubeEmbed}
+              className="h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      );
+    }
+
+    if (isDirectVideo(mediaUrl)) {
+      return (
+        <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-900/50 p-3">
+          <video
+            src={mediaUrl}
+            controls
+            className="mx-auto aspect-video w-full rounded-2xl"
+          />
+        </div>
+      );
+    }
+
+    return (
+      <div className="mx-auto max-w-3xl overflow-hidden rounded-[1.5rem] border border-white/10 bg-slate-900/50 p-3">
+        <div className="rounded-2xl border border-white/10 bg-slate-950/60 px-4 py-6 text-sm text-slate-300">
+          هذا الرابط ليس فيديو مباشرًا أو يوتيوب قابلًا للتضمين.
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 }
