@@ -276,6 +276,29 @@ export default function GameBoardClient({
     closeModal();
   }
 
+  function increaseTeamOneScore() {
+    setTeamOneScore((prev) => prev + 100);
+  }
+
+  function decreaseTeamOneScore() {
+    setTeamOneScore((prev) => Math.max(prev - 100, 0));
+  }
+
+  function increaseTeamTwoScore() {
+    setTeamTwoScore((prev) => prev + 100);
+  }
+
+  function decreaseTeamTwoScore() {
+    setTeamTwoScore((prev) => Math.max(prev - 100, 0));
+  }
+
+  const leadingTeam =
+    teamOneScore > teamTwoScore
+      ? "teamOne"
+      : teamTwoScore > teamOneScore
+      ? "teamTwo"
+      : "tie";
+
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <div className="border-b border-white/10 bg-gradient-to-l from-white/10 via-white/5 to-transparent px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5">
@@ -313,8 +336,17 @@ export default function GameBoardClient({
       </div>
 
       <div className="mx-auto max-w-[1800px] px-2 py-3 sm:px-3 sm:py-4 md:px-6 md:py-6">
-        <div className="mb-3 grid gap-2 grid-cols-[1fr_1.25fr_1fr] sm:mb-4 sm:gap-3 md:mb-8 md:grid-cols-[280px_1fr_280px] md:gap-6">
-          <TeamCard name={teamOne} score={teamOneScore} accent="orange" />
+        <div className="mb-3 grid grid-cols-[1fr_1.25fr_1fr] gap-2 sm:mb-4 sm:gap-3 md:mb-8 md:grid-cols-[280px_1fr_280px] md:gap-6">
+          <TeamCard
+            name={teamOne}
+            score={teamOneScore}
+            accent="orange"
+            onIncrease={increaseTeamOneScore}
+            onDecrease={decreaseTeamOneScore}
+            isLeading={leadingTeam === "teamOne"}
+            isTie={leadingTeam === "tie"}
+          />
+
           <div className="rounded-[1.2rem] border border-white/10 bg-white/5 p-3 text-center sm:rounded-[1.4rem] sm:p-4 md:rounded-[2rem] md:p-6">
             <div className="text-[10px] text-slate-400 sm:text-xs md:text-sm">
               الجولة الحالية
@@ -322,8 +354,27 @@ export default function GameBoardClient({
             <div className="mt-1 text-lg font-black text-cyan-300 sm:text-xl md:mt-3 md:text-4xl">
               {gameName}
             </div>
+
+            <div className="mt-2 text-[10px] font-bold sm:text-xs md:mt-4 md:text-sm">
+              {leadingTeam === "tie" ? (
+                <span className="text-slate-400">لا يوجد متصدر حاليًا</span>
+              ) : (
+                <span className="text-emerald-300">
+                  المتصدر الآن: {leadingTeam === "teamOne" ? teamOne : teamTwo}
+                </span>
+              )}
+            </div>
           </div>
-          <TeamCard name={teamTwo} score={teamTwoScore} accent="cyan" />
+
+          <TeamCard
+            name={teamTwo}
+            score={teamTwoScore}
+            accent="cyan"
+            onIncrease={increaseTeamTwoScore}
+            onDecrease={decreaseTeamTwoScore}
+            isLeading={leadingTeam === "teamTwo"}
+            isTie={leadingTeam === "tie"}
+          />
         </div>
 
         <div className="grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3 xl:gap-6">
@@ -557,27 +608,86 @@ function TeamCard({
   name,
   score,
   accent,
+  onIncrease,
+  onDecrease,
+  isLeading,
+  isTie,
 }: {
   name: string;
   score: number;
   accent: "orange" | "cyan";
+  onIncrease: () => void;
+  onDecrease: () => void;
+  isLeading: boolean;
+  isTie: boolean;
 }) {
   const accentClass =
     accent === "orange"
       ? "bg-orange-400 text-slate-950"
       : "bg-cyan-400 text-slate-950";
 
+  const actionClass =
+    accent === "orange"
+      ? "border-orange-400/30 bg-orange-400/10 text-orange-300 hover:bg-orange-400/20"
+      : "border-cyan-400/30 bg-cyan-400/10 text-cyan-300 hover:bg-cyan-400/20";
+
+  const leadingWrapper =
+    isLeading && !isTie
+      ? accent === "orange"
+        ? "border-orange-300/40 bg-orange-400/10 shadow-[0_0_30px_rgba(251,146,60,0.15)]"
+        : "border-cyan-300/40 bg-cyan-400/10 shadow-[0_0_30px_rgba(34,211,238,0.15)]"
+      : "border-white/10 bg-white/5";
+
+  const leadingBadge =
+    isLeading && !isTie
+      ? accent === "orange"
+        ? "bg-orange-400/20 text-orange-200 border-orange-300/30"
+        : "bg-cyan-400/20 text-cyan-200 border-cyan-300/30"
+      : "hidden";
+
   return (
-    <div className="rounded-[1.2rem] border border-white/10 bg-white/5 p-3 text-center sm:rounded-[1.4rem] sm:p-4 md:rounded-[2rem] md:p-5">
+    <div
+      className={`rounded-[1.2rem] border p-3 text-center transition sm:rounded-[1.4rem] sm:p-4 md:rounded-[2rem] md:p-5 ${leadingWrapper}`}
+    >
+      <div className="mb-2 flex min-h-[24px] items-center justify-center md:mb-3">
+        <div className={`rounded-full border px-3 py-1 text-[10px] font-bold sm:text-xs ${leadingBadge}`}>
+          متصدر
+        </div>
+      </div>
+
       <div
         className={`rounded-xl px-2 py-2 text-sm font-black sm:text-base md:rounded-2xl md:px-4 md:py-3 md:text-xl ${accentClass}`}
       >
         <span className="line-clamp-1 block">{name}</span>
       </div>
-      <div className="mt-3 text-4xl font-black sm:text-5xl md:mt-5 md:text-6xl">
-        {score}
+
+      <div className="mt-3 flex items-center justify-center gap-2 sm:gap-3 md:mt-5 md:gap-4">
+        <button
+          type="button"
+          onClick={onDecrease}
+          className={`flex h-8 w-8 items-center justify-center rounded-full border text-base font-black transition sm:h-9 sm:w-9 md:h-12 md:w-12 md:text-2xl ${actionClass}`}
+          aria-label={`تقليل نقاط ${name}`}
+        >
+          −
+        </button>
+
+        <div className="min-w-[64px] rounded-2xl border border-white/10 bg-slate-900/70 px-2 py-2 sm:min-w-[72px] md:min-w-[110px] md:px-5 md:py-3">
+          <div className="text-3xl font-black sm:text-4xl md:text-5xl">
+            {score}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onIncrease}
+          className={`flex h-8 w-8 items-center justify-center rounded-full border text-base font-black transition sm:h-9 sm:w-9 md:h-12 md:w-12 md:text-2xl ${actionClass}`}
+          aria-label={`زيادة نقاط ${name}`}
+        >
+          +
+        </button>
       </div>
-      <div className="mt-1 text-[10px] text-slate-400 sm:text-xs md:mt-2 md:text-sm">
+
+      <div className="mt-2 text-[10px] text-slate-400 sm:text-xs md:text-sm">
         نقطة
       </div>
     </div>
