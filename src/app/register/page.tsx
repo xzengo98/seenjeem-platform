@@ -80,24 +80,24 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
+    <main className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6 md:py-12 lg:px-8 lg:py-16">
       <div className="mx-auto max-w-xl">
-        <div className="overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/5 shadow-[0_30px_100px_-40px_rgba(0,0,0,0.8)]">
-          <div className="border-b border-white/10 bg-gradient-to-l from-cyan-400/10 to-transparent px-8 py-8">
-            <h1 className="text-4xl font-black">إنشاء حساب جديد</h1>
-            <p className="mt-3 text-slate-300">
+        <div className="overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/5 shadow-[0_30px_100px_-40px_rgba(0,0,0,0.8)] md:rounded-[2.5rem]">
+          <div className="border-b border-white/10 bg-gradient-to-l from-cyan-400/10 to-transparent px-5 py-6 md:px-8 md:py-8">
+            <h1 className="text-3xl font-black md:text-4xl">إنشاء حساب جديد</h1>
+            <p className="mt-3 text-sm leading-7 text-slate-300 md:text-base">
               أنشئ حسابك وابدأ مباشرة باستخدام لعبتك الأولى المجانية.
             </p>
           </div>
 
-          <div className="p-8">
+          <div className="p-5 md:p-8">
             {errorMessage ? (
-              <div className="mb-6 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-red-200">
+              <div className="mb-5 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200 md:mb-6 md:text-base">
                 {errorMessage}
               </div>
             ) : null}
 
-            <form onSubmit={handleRegister} className="space-y-5">
+            <form onSubmit={handleRegister} className="space-y-4 md:space-y-5">
               <div>
                 <label className="mb-2 block text-sm font-bold text-slate-200">
                   اسم المستخدم
@@ -106,7 +106,7 @@ export default function RegisterPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="username"
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900 px-5 py-4 text-white outline-none"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none md:px-5 md:py-4 md:text-base"
                 />
               </div>
 
@@ -118,7 +118,7 @@ export default function RegisterPage() {
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="05xxxxxxxx أو +971..."
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900 px-5 py-4 text-white outline-none"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none md:px-5 md:py-4 md:text-base"
                 />
               </div>
 
@@ -131,7 +131,7 @@ export default function RegisterPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   type="email"
                   placeholder="name@email.com"
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900 px-5 py-4 text-white outline-none"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none md:px-5 md:py-4 md:text-base"
                 />
               </div>
 
@@ -144,20 +144,20 @@ export default function RegisterPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   type="password"
                   placeholder="******"
-                  className="w-full rounded-2xl border border-white/10 bg-slate-900 px-5 py-4 text-white outline-none"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white outline-none md:px-5 md:py-4 md:text-base"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-2xl bg-cyan-400 px-6 py-4 text-lg font-black text-slate-950 disabled:opacity-60"
+                className="w-full rounded-2xl bg-cyan-400 px-6 py-3 text-base font-black text-slate-950 disabled:opacity-60 md:py-4 md:text-lg"
               >
                 {loading ? "جاري إنشاء الحساب..." : "إنشاء الحساب"}
               </button>
             </form>
 
-            <div className="mt-6 text-sm text-slate-300">
+            <div className="mt-5 text-sm text-slate-300 md:mt-6">
               لديك حساب بالفعل؟{" "}
               <Link href="/login" className="font-bold text-cyan-300">
                 تسجيل الدخول

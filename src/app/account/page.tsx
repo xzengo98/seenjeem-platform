@@ -102,8 +102,8 @@ export default function AccountPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
-        <div className="mx-auto max-w-6xl rounded-[2.5rem] border border-white/10 bg-white/5 p-10 text-center">
+      <main className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6 md:py-12 lg:px-8 lg:py-16">
+        <div className="mx-auto max-w-6xl rounded-[1.75rem] border border-white/10 bg-white/5 p-6 text-center md:rounded-[2.5rem] md:p-10">
           جارٍ تحميل بيانات الحساب...
         </div>
       </main>
@@ -111,50 +111,50 @@ export default function AccountPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
-      <div className="mx-auto max-w-6xl space-y-8">
-        <div className="rounded-[2.5rem] border border-white/10 bg-white/5 p-8 md:p-10">
-          <div className="flex flex-wrap items-center justify-between gap-4">
+    <main className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6 md:py-12 lg:px-8 lg:py-16">
+      <div className="mx-auto max-w-6xl space-y-6 md:space-y-8">
+        <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 md:rounded-[2.5rem] md:p-10">
+          <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-4xl font-black md:text-5xl">حسابي</h1>
-              <p className="mt-3 text-slate-300">
+              <h1 className="text-3xl font-black md:text-5xl">حسابي</h1>
+              <p className="mt-3 text-sm leading-7 text-slate-300 md:text-base">
                 معلومات حسابك وإحصائيات استخدامك للمنصة.
               </p>
             </div>
 
             <Link
               href="/game/start"
-              className="rounded-2xl bg-cyan-400 px-6 py-3 font-bold text-slate-950"
+              className="rounded-2xl bg-cyan-400 px-5 py-3 text-center font-bold text-slate-950"
             >
               إنشاء لعبة جديدة
             </Link>
           </div>
 
-          <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-[2rem] border border-white/10 bg-slate-900/60 p-6 text-center">
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4 md:mt-10 md:gap-6">
+            <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-5 text-center md:rounded-[2rem] md:p-6">
               <div className="text-sm text-slate-400">الألعاب المتبقية</div>
-              <div className="mt-3 text-5xl font-black text-cyan-300">
+              <div className="mt-3 text-4xl font-black text-cyan-300 md:text-5xl">
                 {profile?.games_remaining ?? 0}
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-slate-900/60 p-6 text-center">
+            <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-5 text-center md:rounded-[2rem] md:p-6">
               <div className="text-sm text-slate-400">عدد الألعاب التي لعبها</div>
-              <div className="mt-3 text-5xl font-black text-cyan-300">
+              <div className="mt-3 text-4xl font-black text-cyan-300 md:text-5xl">
                 {profile?.games_played ?? 0}
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-slate-900/60 p-6 text-center">
+            <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-5 text-center md:rounded-[2rem] md:p-6">
               <div className="text-sm text-slate-400">الدور</div>
-              <div className="mt-3 text-3xl font-black text-white">
+              <div className="mt-3 text-2xl font-black text-white md:text-3xl">
                 {profile?.role ?? "user"}
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-slate-900/60 p-6 text-center">
+            <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-5 text-center md:rounded-[2rem] md:p-6">
               <div className="text-sm text-slate-400">تاريخ إنشاء الحساب</div>
-              <div className="mt-3 text-lg font-bold text-white">
+              <div className="mt-3 text-base font-bold text-white md:text-lg">
                 {profile?.created_at
                   ? new Date(profile.created_at).toLocaleDateString("ar-EG")
                   : "-"}
@@ -162,28 +162,30 @@ export default function AccountPage() {
             </div>
           </div>
 
-          <div className="mt-10 grid gap-6 md:grid-cols-2">
-            <div className="rounded-[2rem] border border-white/10 bg-slate-900/60 p-6">
+          <div className="mt-8 grid gap-4 md:mt-10 md:gap-6 md:grid-cols-2">
+            <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-5 md:rounded-[2rem] md:p-6">
               <div className="text-sm text-slate-400">اسم المستخدم</div>
-              <div className="mt-3 text-2xl font-black">
+              <div className="mt-3 break-words text-xl font-black md:text-2xl">
                 {profile?.username || "-"}
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-slate-900/60 p-6">
+            <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-5 md:rounded-[2rem] md:p-6">
               <div className="text-sm text-slate-400">البريد الإلكتروني</div>
-              <div className="mt-3 break-all text-2xl font-black">
+              <div className="mt-3 break-all text-xl font-black md:text-2xl">
                 {profile?.email || "-"}
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-slate-900/60 p-6 md:col-span-2">
+            <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-5 md:col-span-2 md:rounded-[2rem] md:p-6">
               <div className="text-sm text-slate-400">رقم الهاتف</div>
-              <div className="mt-3 text-2xl font-black">{profile?.phone || "-"}</div>
+              <div className="mt-3 break-words text-xl font-black md:text-2xl">
+                {profile?.phone || "-"}
+              </div>
             </div>
           </div>
 
-          <div className="mt-10 flex flex-wrap gap-4">
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap md:mt-10 md:gap-4">
             <button
               type="button"
               onClick={handleLogout}
@@ -194,54 +196,52 @@ export default function AccountPage() {
 
             <Link
               href="/"
-              className="rounded-2xl border border-white/10 px-6 py-3 font-semibold text-slate-300"
+              className="rounded-2xl border border-white/10 px-6 py-3 text-center font-semibold text-slate-300"
             >
               العودة للرئيسية
             </Link>
           </div>
         </div>
 
-        <div className="rounded-[2.5rem] border border-white/10 bg-white/5 p-8 md:p-10">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-3xl font-black">الألعاب غير المكتملة</h2>
-              <p className="mt-3 text-slate-300">
-                يمكنك الرجوع لأي لعبة لم تنتهِ بعد وإكمالها من نفس المكان.
-              </p>
-            </div>
+        <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 md:rounded-[2.5rem] md:p-10">
+          <div>
+            <h2 className="text-2xl font-black md:text-3xl">الألعاب غير المكتملة</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-300 md:text-base">
+              يمكنك الرجوع لأي لعبة لم تنتهِ بعد وإكمالها من نفس المكان.
+            </p>
           </div>
 
-          <div className="mt-8 space-y-4">
+          <div className="mt-6 space-y-4 md:mt-8">
             {activeSessions.length > 0 ? (
               activeSessions.map((session) => (
                 <div
                   key={session.id}
-                  className="rounded-[2rem] border border-white/10 bg-slate-900/60 p-6"
+                  className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-5 md:rounded-[2rem] md:p-6"
                 >
-                  <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr_auto] lg:items-center">
+                  <div className="grid gap-4 lg:grid-cols-[1.3fr_1fr_auto] lg:items-center lg:gap-6">
                     <div>
-                      <div className="text-2xl font-black text-white">
+                      <div className="text-xl font-black text-white md:text-2xl">
                         {session.game_name}
                       </div>
-                      <div className="mt-2 text-slate-300">
+                      <div className="mt-2 text-sm leading-7 text-slate-300 md:text-base">
                         {session.team_one_name} ({session.team_one_score ?? 0}) ×{" "}
                         {session.team_two_name} ({session.team_two_score ?? 0})
                       </div>
-                      <div className="mt-2 text-sm text-slate-500">
+                      <div className="mt-2 text-xs text-slate-500 md:text-sm">
                         {session.created_at
                           ? new Date(session.created_at).toLocaleDateString("ar-EG")
                           : "-"}
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-center text-cyan-300">
+                    <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-center text-sm text-cyan-300">
                       الحالة: نشطة
                     </div>
 
                     <div>
                       <Link
                         href={`/game/board?sessionId=${session.id}`}
-                        className="rounded-2xl bg-cyan-400 px-6 py-3 font-bold text-slate-950"
+                        className="block rounded-2xl bg-cyan-400 px-5 py-3 text-center font-bold text-slate-950"
                       >
                         متابعة اللعبة
                       </Link>
@@ -250,7 +250,7 @@ export default function AccountPage() {
                 </div>
               ))
             ) : (
-              <div className="rounded-[2rem] border border-white/10 bg-slate-900/60 px-6 py-10 text-center text-slate-400">
+              <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 px-5 py-8 text-center text-sm text-slate-400 md:rounded-[2rem] md:px-6 md:py-10 md:text-base">
                 لا توجد ألعاب غير مكتملة حاليًا.
               </div>
             )}
