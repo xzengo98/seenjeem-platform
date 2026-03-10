@@ -74,19 +74,23 @@ const steps: Step[] = [
 const audiences: Audience[] = [
   {
     title: "للمدارس",
-    description: "خيار مناسب للمسابقات الصفية والأنشطة التعليمية والفعاليات المدرسية.",
+    description:
+      "خيار مناسب للمسابقات الصفية والأنشطة التعليمية والفعاليات المدرسية.",
   },
   {
     title: "للفعاليات",
-    description: "أضف فقرة تفاعلية ممتعة للمعارض، اللقاءات، والمناسبات الجماهيرية.",
+    description:
+      "أضف فقرة تفاعلية ممتعة للمعارض، اللقاءات، والمناسبات الجماهيرية.",
   },
   {
     title: "للفرق والشركات",
-    description: "مناسب للتحديات الجماعية، الأنشطة الداخلية، والمسابقات الترفيهية.",
+    description:
+      "مناسب للتحديات الجماعية، الأنشطة الداخلية، والمسابقات الترفيهية.",
   },
   {
     title: "للمناسبات الخاصة",
-    description: "حوّل الجلسات العائلية واللقاءات الخاصة إلى منافسات ممتعة ومنظمة.",
+    description:
+      "حوّل الجلسات العائلية واللقاءات الخاصة إلى منافسات ممتعة ومنظمة.",
   },
 ];
 
@@ -198,37 +202,58 @@ export default function HomePage() {
           <div className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-orange-500/10 blur-3xl" />
 
           <div className="relative grid grid-cols-[0.78fr_1.22fr] items-start gap-2.5 max-[390px]:grid-cols-[0.76fr_1.24fr] sm:gap-8 lg:items-center">
-            <div className="min-w-0 flex flex-col gap-3 sm:gap-6">
-              <div className="flex flex-wrap gap-2 text-[10px] text-slate-200 sm:gap-3 sm:text-sm">
-                <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1.5 sm:px-4 sm:py-2">
-                  منصة عربية لألعاب الأسئلة
+            <div className="min-w-0 flex flex-col gap-2.5 sm:gap-6">
+              <div className="flex flex-wrap gap-1.5 text-[8px] text-slate-200 max-[390px]:text-[7.5px] sm:gap-3 sm:text-sm">
+                <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-1 leading-none sm:px-4 sm:py-2">
+                  <span className="sm:hidden">منصة عربية</span>
+                  <span className="hidden sm:inline">منصة عربية لألعاب الأسئلة</span>
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 sm:px-4 sm:py-2">
-                  مناسبة للمدارس والفعاليات
+                <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 leading-none sm:px-4 sm:py-2">
+                  <span className="sm:hidden">للمدارس والفعاليات</span>
+                  <span className="hidden sm:inline">
+                    مناسبة للمدارس والفعاليات
+                  </span>
                 </span>
               </div>
 
               <div className="max-w-3xl">
-                <p className="text-[11px] font-medium text-cyan-300 sm:text-base">
+                <p className="text-[10px] font-medium text-cyan-300 max-[390px]:text-[9px] sm:text-base">
                   مرحبًا بك في SeenJeem
                 </p>
-                <h1 className="mt-2 text-[1.95rem] font-black leading-[1.15] text-white max-[390px]:text-[1.78rem] sm:mt-3 sm:text-4xl lg:text-5xl">
-                  حوّل أي مسابقة إلى تجربة تفاعلية ممتعة وسريعة التنظيم
+
+                <h1 className="mt-1.5 font-black leading-[1.08] text-white sm:mt-3 sm:text-4xl lg:text-5xl">
+                  <span className="block text-[1.28rem] max-[390px]:text-[1.16rem] sm:hidden">
+                    حوّل أي مسابقة
+                    <br />
+                    إلى تجربة تفاعلية
+                    <br />
+                    ممتعة وسريعة
+                  </span>
+                  <span className="hidden sm:block">
+                    حوّل أي مسابقة إلى تجربة تفاعلية ممتعة وسريعة التنظيم
+                  </span>
                 </h1>
-                <p className="mt-3 text-xs leading-6 text-slate-300 sm:mt-4 sm:text-lg sm:leading-8">
-                  منصة عربية تساعدك على تشغيل ألعاب الأسئلة بين فريقين بواجهة أنيقة،
-                  تنظيم واضح، وتجربة جاهزة للعرض أمام الجمهور في المدارس والفعاليات
-                  والمناسبات الخاصة.
+
+                <p className="mt-2 text-[10px] leading-5 text-slate-300 max-[390px]:text-[9px] sm:mt-4 sm:text-lg sm:leading-8">
+                  <span className="sm:hidden">
+                    منصة عربية لتشغيل ألعاب الأسئلة بين فريقين بواجهة واضحة
+                    وجاهزة للعرض في المدارس والفعاليات والمناسبات.
+                  </span>
+                  <span className="hidden sm:inline">
+                    منصة عربية تساعدك على تشغيل ألعاب الأسئلة بين فريقين بواجهة
+                    أنيقة، تنظيم واضح، وتجربة جاهزة للعرض أمام الجمهور في المدارس
+                    والفعاليات والمناسبات الخاصة.
+                  </span>
                 </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
                 <InfoStat title="تشغيل سريع" value="بدء فوري" />
                 <InfoStat title="تفاعل مباشر" value="فريقان وتحدي" />
                 <InfoStat title="حفظ التقدم" value="متابعة لاحقًا" />
               </div>
 
-              <div className="rounded-[1.45rem] border border-white/10 bg-white/5 p-3 backdrop-blur sm:rounded-[1.75rem] sm:p-5">
+              <div className="rounded-[1.2rem] border border-white/10 bg-white/5 p-2.5 backdrop-blur sm:rounded-[1.75rem] sm:p-5">
                 {loading ? (
                   <div className="flex flex-col gap-3">
                     <p className="text-xs text-slate-300 sm:text-base">
@@ -237,20 +262,21 @@ export default function HomePage() {
                     <div className="h-10 w-full rounded-2xl bg-white/10 sm:h-11 sm:max-w-xs" />
                   </div>
                 ) : isLoggedIn ? (
-                  <div className="flex flex-col gap-3 sm:gap-4">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-col gap-2.5 sm:gap-4">
+                    <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-[11px] text-slate-300 sm:text-sm">
+                        <p className="text-[10px] text-slate-300 max-[390px]:text-[9px] sm:text-sm">
                           أهلاً {username || "بك"}
                         </p>
-                        <p className="mt-1 text-[1.15rem] font-bold leading-tight text-white max-[390px]:text-[1.05rem] sm:text-xl">
+                        <p className="mt-1 text-[1rem] font-bold leading-tight text-white max-[390px]:text-[0.92rem] sm:text-xl">
                           عدد الألعاب المتبقية: {gamesRemaining}
                         </p>
-                        <p className="mt-1 text-[10px] leading-5 text-slate-400 sm:text-sm">
+                        <p className="mt-1 text-[9px] leading-4 text-slate-400 max-[390px]:text-[8px] sm:text-sm sm:leading-6">
                           ابدأ جولة جديدة أو تابع ألعابك من صفحة الحساب.
                         </p>
                       </div>
-                      <span className="w-fit rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1.5 text-[9px] text-emerald-200 sm:px-3 sm:py-2 sm:text-sm">
+
+                      <span className="w-fit rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-1 text-[8px] text-emerald-200 max-[390px]:text-[7px] sm:px-3 sm:py-2 sm:text-sm">
                         حسابك جاهز للعب
                       </span>
                     </div>
@@ -258,40 +284,41 @@ export default function HomePage() {
                     <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-row sm:gap-3">
                       <Link
                         href="/game/start"
-                        className="inline-flex min-h-9 items-center justify-center rounded-[1rem] bg-cyan-400 px-2 py-2 text-[11px] font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300 max-[390px]:text-[10px] sm:min-h-12 sm:rounded-2xl sm:px-5 sm:py-3 sm:text-base"
+                        className="inline-flex min-h-8.5 items-center justify-center rounded-[0.95rem] bg-cyan-400 px-2 py-2 text-[10px] font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300 max-[390px]:text-[9px] sm:min-h-12 sm:rounded-2xl sm:px-5 sm:py-3 sm:text-base"
                       >
-                        ابدأ الآن
+                        <span className="sm:hidden">ابدأ الآن</span>
+                        <span className="hidden sm:inline">ابدأ الآن</span>
                       </Link>
                       <Link
                         href="/account"
-                        className="inline-flex min-h-9 items-center justify-center rounded-[1rem] border border-white/15 bg-white/5 px-2 py-2 text-[11px] font-bold text-white transition hover:bg-white/10 max-[390px]:text-[10px] sm:min-h-12 sm:rounded-2xl sm:px-5 sm:py-3 sm:text-base"
+                        className="inline-flex min-h-8.5 items-center justify-center rounded-[0.95rem] border border-white/15 bg-white/5 px-2 py-2 text-[10px] font-bold text-white transition hover:bg-white/10 max-[390px]:text-[9px] sm:min-h-12 sm:rounded-2xl sm:px-5 sm:py-3 sm:text-base"
                       >
                         حسابي
                       </Link>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-3 sm:gap-4">
+                  <div className="flex flex-col gap-2.5 sm:gap-4">
                     <div>
-                      <p className="text-base font-bold text-white sm:text-xl">
+                      <p className="text-[0.98rem] font-bold text-white max-[390px]:text-[0.9rem] sm:text-xl">
                         جاهز لبدء أول تحدٍّ؟
                       </p>
-                      <p className="mt-2 text-xs leading-6 text-slate-300 sm:text-base sm:leading-7">
-                        أنشئ حسابك وابدأ في تجهيز ألعاب أسئلة عربية بتجربة أنيقة وسهلة
-                        الاستخدام تناسب مختلف أنواع المسابقات.
+                      <p className="mt-2 text-[10px] leading-5 text-slate-300 max-[390px]:text-[9px] sm:text-base sm:leading-7">
+                        أنشئ حسابك وابدأ في تجهيز ألعاب أسئلة عربية بتجربة أنيقة
+                        وسهلة الاستخدام تناسب مختلف أنواع المسابقات.
                       </p>
                     </div>
 
                     <div className="grid grid-cols-2 gap-1.5 sm:flex sm:flex-row sm:gap-3">
                       <Link
                         href="/register"
-                        className="inline-flex min-h-9 items-center justify-center rounded-[1rem] bg-cyan-400 px-2 py-2 text-[11px] font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300 max-[390px]:text-[10px] sm:min-h-12 sm:rounded-2xl sm:px-5 sm:py-3 sm:text-base"
+                        className="inline-flex min-h-8.5 items-center justify-center rounded-[0.95rem] bg-cyan-400 px-2 py-2 text-[10px] font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300 max-[390px]:text-[9px] sm:min-h-12 sm:rounded-2xl sm:px-5 sm:py-3 sm:text-base"
                       >
                         إنشاء حساب
                       </Link>
                       <Link
                         href="/login"
-                        className="inline-flex min-h-9 items-center justify-center rounded-[1rem] border border-white/15 bg-white/5 px-2 py-2 text-[11px] font-bold text-white transition hover:bg-white/10 max-[390px]:text-[10px] sm:min-h-12 sm:rounded-2xl sm:px-5 sm:py-3 sm:text-base"
+                        className="inline-flex min-h-8.5 items-center justify-center rounded-[0.95rem] border border-white/15 bg-white/5 px-2 py-2 text-[10px] font-bold text-white transition hover:bg-white/10 max-[390px]:text-[9px] sm:min-h-12 sm:rounded-2xl sm:px-5 sm:py-3 sm:text-base"
                       >
                         تسجيل الدخول
                       </Link>
@@ -349,8 +376,8 @@ export default function HomePage() {
                         واجهة واضحة مناسبة للعرض داخل الصفوف والفعاليات والمناسبات.
                       </span>
                       <span className="hidden sm:inline">
-                        واجهة مرتبة تساعد على تقديم اللعبة بشكل جذاب وواضح سواء داخل
-                        الفصول أو في الفعاليات والمناسبات المختلفة.
+                        واجهة مرتبة تساعد على تقديم اللعبة بشكل جذاب وواضح سواء
+                        داخل الفصول أو في الفعاليات والمناسبات المختلفة.
                       </span>
                     </p>
                   </div>
@@ -440,8 +467,8 @@ export default function HomePage() {
                 اجعل المسابقات أكثر تفاعلًا وتنظيمًا
               </h2>
               <p className="mt-3 text-xs leading-6 text-slate-300 sm:text-base sm:leading-8">
-                ابدأ لعبة جديدة خلال لحظات واستمتع بتجربة عربية أنيقة مناسبة للعرض،
-                الإدارة، والمتابعة بسهولة.
+                ابدأ لعبة جديدة خلال لحظات واستمتع بتجربة عربية أنيقة مناسبة
+                للعرض، الإدارة، والمتابعة بسهولة.
               </p>
             </div>
 
@@ -513,9 +540,11 @@ function SectionHeader({
 
 function InfoStat({ title, value }: { title: string; value: string }) {
   return (
-    <div className="rounded-[1.2rem] border border-white/10 bg-white/5 px-2.5 py-3 backdrop-blur sm:rounded-[1.5rem] sm:px-4 sm:py-4">
-      <p className="text-[10px] text-slate-400 sm:text-sm">{title}</p>
-      <p className="mt-1.5 text-xs font-bold text-white sm:mt-2 sm:text-lg">
+    <div className="rounded-[1rem] border border-white/10 bg-white/5 px-2 py-2.5 backdrop-blur sm:rounded-[1.5rem] sm:px-4 sm:py-4">
+      <p className="text-[8px] text-slate-400 max-[390px]:text-[7px] sm:text-sm">
+        {title}
+      </p>
+      <p className="mt-1 text-[10px] font-bold leading-tight text-white max-[390px]:text-[9px] sm:mt-2 sm:text-lg">
         {value}
       </p>
     </div>
