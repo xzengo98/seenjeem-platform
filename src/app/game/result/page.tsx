@@ -58,51 +58,51 @@ export default async function GameResultPage({
   });
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
+    <main className="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6 md:py-12 lg:px-8 lg:py-16">
       <div className="mx-auto max-w-5xl">
-        <div className="rounded-[2.5rem] border border-white/10 bg-white/5 p-10">
+        <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-5 md:rounded-[2.5rem] md:p-10">
           <div className="text-center">
             <div className="text-sm text-slate-400">نتيجة اللعبة</div>
-            <h1 className="mt-3 text-5xl font-black">{gameName}</h1>
-            <p className="mt-4 text-lg text-slate-300">
+            <h1 className="mt-3 text-3xl font-black md:text-5xl">{gameName}</h1>
+            <p className="mt-4 text-sm leading-7 text-slate-300 md:text-lg">
               تم حفظ النتيجة وتحديث رصيد الألعاب تلقائيًا.
             </p>
           </div>
 
-          <div className="mt-10 grid gap-6 md:grid-cols-2">
-            <div className="rounded-[2rem] border border-white/10 bg-slate-900/60 p-8 text-center">
-              <div className="text-2xl font-black">{teamOne}</div>
-              <div className="mt-4 text-6xl font-black text-cyan-300">
+          <div className="mt-8 grid gap-4 md:mt-10 md:gap-6 md:grid-cols-2">
+            <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-6 text-center md:rounded-[2rem] md:p-8">
+              <div className="text-xl font-black md:text-2xl">{teamOne}</div>
+              <div className="mt-4 text-5xl font-black text-cyan-300 md:text-6xl">
                 {teamOneScore}
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-white/10 bg-slate-900/60 p-8 text-center">
-              <div className="text-2xl font-black">{teamTwo}</div>
-              <div className="mt-4 text-6xl font-black text-cyan-300">
+            <div className="rounded-[1.5rem] border border-white/10 bg-slate-900/60 p-6 text-center md:rounded-[2rem] md:p-8">
+              <div className="text-xl font-black md:text-2xl">{teamTwo}</div>
+              <div className="mt-4 text-5xl font-black text-cyan-300 md:text-6xl">
                 {teamTwoScore}
               </div>
             </div>
           </div>
 
-          <div className="mt-10 rounded-[2rem] border border-emerald-500/20 bg-emerald-500/10 p-8 text-center">
-            <div className="text-lg text-slate-300">الفائز</div>
-            <div className="mt-3 text-4xl font-black text-emerald-300">
+          <div className="mt-8 rounded-[1.5rem] border border-emerald-500/20 bg-emerald-500/10 p-6 text-center md:mt-10 md:rounded-[2rem] md:p-8">
+            <div className="text-base text-slate-300 md:text-lg">الفائز</div>
+            <div className="mt-3 text-3xl font-black text-emerald-300 md:text-4xl">
               {winnerTeam}
             </div>
           </div>
 
-          <div className="mt-10 flex flex-wrap justify-center gap-4">
+          <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row sm:flex-wrap md:mt-10 md:gap-4">
             <Link
               href="/game/start"
-              className="rounded-[2rem] bg-cyan-400 px-8 py-4 text-xl font-black text-slate-950"
+              className="rounded-[1.5rem] bg-cyan-400 px-6 py-3 text-center text-base font-black text-slate-950 md:rounded-[2rem] md:px-8 md:py-4 md:text-xl"
             >
               بدء لعبة جديدة
             </Link>
 
             <Link
               href="/account"
-              className="rounded-[2rem] border border-white/10 px-8 py-4 text-xl font-black text-slate-200"
+              className="rounded-[1.5rem] border border-white/10 px-6 py-3 text-center text-base font-black text-slate-200 md:rounded-[2rem] md:px-8 md:py-4 md:text-xl"
             >
               حسابي
             </Link>
