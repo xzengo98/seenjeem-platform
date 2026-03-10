@@ -65,6 +65,10 @@ const categoryVisuals: Record<string, CategoryVisual> = {
     emoji: "🎬",
     gradient: "from-rose-300/20 via-pink-400/10 to-transparent",
   },
+  islamic: {
+    emoji: "🕌",
+    gradient: "from-amber-200/20 via-yellow-400/10 to-transparent",
+  },
   default: {
     emoji: "✨",
     gradient: "from-slate-300/20 via-slate-400/10 to-transparent",
@@ -274,78 +278,88 @@ export default function GameBoardClient({
 
   return (
     <main className="min-h-screen bg-slate-950 text-white">
-      <div className="border-b border-white/10 bg-gradient-to-l from-white/10 via-white/5 to-transparent px-6 py-5">
-        <div className="mx-auto flex max-w-[1700px] flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="text-sm text-slate-400">اسم اللعبة</div>
-            <div className="text-3xl font-black">{gameName}</div>
-          </div>
+      <div className="border-b border-white/10 bg-gradient-to-l from-white/10 via-white/5 to-transparent px-3 py-3 sm:px-4 sm:py-4 md:px-6 md:py-5">
+        <div className="mx-auto max-w-[1800px]">
+          <div className="grid grid-cols-2 items-center gap-2 md:flex md:flex-wrap md:items-center md:justify-between md:gap-4">
+            <div className="order-2 text-right md:order-1">
+              <div className="text-[10px] text-slate-400 sm:text-xs">اسم اللعبة</div>
+              <div className="text-lg font-black sm:text-xl md:text-3xl">
+                {gameName}
+              </div>
+            </div>
 
-          <div className="rounded-full bg-orange-400 px-8 py-3 text-xl font-black text-slate-950">
-            الحكم هو من يحدد الفريق الصحيح
-          </div>
+            <div className="order-1 col-span-2 flex justify-center md:order-2">
+              <div className="rounded-full bg-orange-400 px-4 py-2 text-center text-xs font-black text-slate-950 sm:px-6 sm:text-sm md:px-8 md:py-3 md:text-xl">
+                الحكم هو من يحدد الفريق الصحيح
+              </div>
+            </div>
 
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/game/start"
-              className="rounded-2xl border border-white/10 px-4 py-3 font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
-            >
-              لعبة جديدة
-            </Link>
-            <Link
-              href="/"
-              className="rounded-2xl border border-white/10 px-4 py-3 font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
-            >
-              الخروج
-            </Link>
+            <div className="order-3 col-span-2 flex justify-start gap-2 md:col-span-1 md:justify-end md:gap-3">
+              <Link
+                href="/game/start"
+                className="rounded-2xl border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white sm:px-4 sm:text-sm md:px-4 md:py-3"
+              >
+                لعبة جديدة
+              </Link>
+              <Link
+                href="/"
+                className="rounded-2xl border border-white/10 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white sm:px-4 sm:text-sm md:px-4 md:py-3"
+              >
+                الخروج
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1800px] px-6 py-6">
-        <div className="mb-8 grid gap-6 lg:grid-cols-[280px_1fr_280px]">
+      <div className="mx-auto max-w-[1800px] px-2 py-3 sm:px-3 sm:py-4 md:px-6 md:py-6">
+        <div className="mb-3 grid gap-2 grid-cols-[1fr_1.25fr_1fr] sm:mb-4 sm:gap-3 md:mb-8 md:grid-cols-[280px_1fr_280px] md:gap-6">
           <TeamCard name={teamOne} score={teamOneScore} accent="orange" />
-          <div className="rounded-[2rem] border border-white/10 bg-white/5 p-6 text-center">
-            <div className="text-sm text-slate-400">الجولة الحالية</div>
-            <div className="mt-3 text-4xl font-black text-cyan-300">
+          <div className="rounded-[1.2rem] border border-white/10 bg-white/5 p-3 text-center sm:rounded-[1.4rem] sm:p-4 md:rounded-[2rem] md:p-6">
+            <div className="text-[10px] text-slate-400 sm:text-xs md:text-sm">
+              الجولة الحالية
+            </div>
+            <div className="mt-1 text-lg font-black text-cyan-300 sm:text-xl md:mt-3 md:text-4xl">
               {gameName}
             </div>
           </div>
           <TeamCard name={teamTwo} score={teamTwoScore} accent="cyan" />
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3 xl:gap-6">
           {grouped.map((category) => {
             const visual = categoryVisuals[category.slug] ?? categoryVisuals.default;
 
             return (
               <div
                 key={category.id}
-                className="rounded-[2.25rem] border border-white/10 bg-white/5 p-4 shadow-[0_20px_80px_-30px_rgba(0,0,0,0.7)]"
+                className="rounded-[1rem] border border-white/10 bg-white/5 p-2 shadow-[0_20px_80px_-30px_rgba(0,0,0,0.7)] sm:rounded-[1.2rem] sm:p-2.5 md:rounded-[2.25rem] md:p-4"
               >
-                <div className="grid grid-cols-[76px_1fr_76px] gap-3">
-                  <div className="space-y-3">
-                    {category.slots.filter((_, i) => i % 2 === 0).map((slot) => (
-                      <PointsButton
-                        key={`${category.id}-left-${slot.slotIndex}`}
-                        slot={slot}
-                        usedQuestionIds={usedQuestionIds}
-                        onOpen={(question) =>
-                          openQuestionCard(question, category.name, slot.slotIndex)
-                        }
-                      />
-                    ))}
+                <div className="grid grid-cols-[42px_1fr_42px] gap-1 sm:grid-cols-[48px_1fr_48px] sm:gap-2 md:grid-cols-[76px_1fr_76px] md:gap-3">
+                  <div className="space-y-1 sm:space-y-2 md:space-y-3">
+                    {category.slots
+                      .filter((_, i) => i % 2 === 0)
+                      .map((slot) => (
+                        <PointsButton
+                          key={`${category.id}-left-${slot.slotIndex}`}
+                          slot={slot}
+                          usedQuestionIds={usedQuestionIds}
+                          onOpen={(question) =>
+                            openQuestionCard(question, category.name, slot.slotIndex)
+                          }
+                        />
+                      ))}
                   </div>
 
-                  <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-slate-900/70">
+                  <div className="overflow-hidden rounded-[1rem] border border-white/10 bg-slate-900/70 sm:rounded-[1.2rem] md:rounded-[2rem]">
                     <div
-                      className={`relative flex h-[260px] flex-col overflow-hidden bg-gradient-to-br ${visual.gradient}`}
+                      className={`relative flex h-[118px] flex-col overflow-hidden bg-gradient-to-br sm:h-[135px] md:h-[260px] ${visual.gradient}`}
                     >
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_30%)]" />
 
-                      <div className="relative flex flex-1 items-center justify-center px-4">
+                      <div className="relative flex flex-1 items-center justify-center px-2 md:px-4">
                         {category.image_url ? (
-                          <div className="relative h-[110px] w-[110px] md:h-[130px] md:w-[130px]">
+                          <div className="relative h-[34px] w-[34px] sm:h-[42px] sm:w-[42px] md:h-[130px] md:w-[130px]">
                             <Image
                               src={category.image_url}
                               alt={category.name}
@@ -354,30 +368,36 @@ export default function GameBoardClient({
                             />
                           </div>
                         ) : (
-                          <div className="select-none text-[64px] opacity-90 md:text-[78px]">
+                          <div className="select-none text-[24px] opacity-90 sm:text-[30px] md:text-[78px]">
                             {visual.emoji}
                           </div>
                         )}
                       </div>
 
-                      <div className="relative border-t border-white/10 bg-slate-950/70 px-4 py-4 text-center">
-                        <div className="text-2xl font-black">{category.name}</div>
-                        <div className="mt-1 text-sm text-cyan-300">{category.slug}</div>
+                      <div className="relative border-t border-white/10 bg-slate-950/70 px-2 py-2 text-center md:px-4 md:py-4">
+                        <div className="line-clamp-2 text-[12px] font-black leading-4 sm:text-[13px] sm:leading-5 md:text-2xl md:leading-normal">
+                          {category.name}
+                        </div>
+                        <div className="mt-1 text-[9px] text-cyan-300 sm:text-[10px] md:text-sm">
+                          {category.slug}
+                        </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    {category.slots.filter((_, i) => i % 2 === 1).map((slot) => (
-                      <PointsButton
-                        key={`${category.id}-right-${slot.slotIndex}`}
-                        slot={slot}
-                        usedQuestionIds={usedQuestionIds}
-                        onOpen={(question) =>
-                          openQuestionCard(question, category.name, slot.slotIndex)
-                        }
-                      />
-                    ))}
+                  <div className="space-y-1 sm:space-y-2 md:space-y-3">
+                    {category.slots
+                      .filter((_, i) => i % 2 === 1)
+                      .map((slot) => (
+                        <PointsButton
+                          key={`${category.id}-right-${slot.slotIndex}`}
+                          slot={slot}
+                          usedQuestionIds={usedQuestionIds}
+                          onOpen={(question) =>
+                            openQuestionCard(question, category.name, slot.slotIndex)
+                          }
+                        />
+                      ))}
                   </div>
                 </div>
               </div>
@@ -387,30 +407,30 @@ export default function GameBoardClient({
       </div>
 
       {openQuestion ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 px-4 py-6">
-          <div className="w-full max-w-7xl rounded-[2.5rem] border border-orange-400/40 bg-[#2e2f33] p-6 shadow-2xl md:p-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 px-3 py-4 md:px-4 md:py-6">
+          <div className="w-full max-w-7xl rounded-[1.5rem] border border-orange-400/40 bg-[#2e2f33] p-4 shadow-2xl md:rounded-[2.5rem] md:p-8">
             {!showAnswer && !showWinnerPicker ? (
-              <div className="space-y-8">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="rounded-full bg-orange-400 px-4 py-2 text-sm font-bold text-slate-950">
+              <div className="space-y-5 md:space-y-8">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="rounded-full bg-orange-400 px-3 py-2 text-xs font-bold text-slate-950 md:px-4 md:text-sm">
                     {openQuestion.points} نقطة
                   </div>
-                  <div className="rounded-full bg-slate-900 px-4 py-2 text-sm font-bold text-slate-200">
+                  <div className="rounded-full bg-slate-900 px-3 py-2 text-xs font-bold text-slate-200 md:px-4 md:text-sm">
                     {openQuestion.categoryName}
                   </div>
                 </div>
 
-                <div className="rounded-[2rem] border border-orange-400/40 bg-[#35363a] px-6 py-10 text-center">
-                  <h2 className="text-3xl font-black leading-[1.7] md:text-5xl">
+                <div className="rounded-[1.5rem] border border-orange-400/40 bg-[#35363a] px-4 py-6 text-center md:rounded-[2rem] md:px-6 md:py-10">
+                  <h2 className="text-xl font-black leading-[1.8] sm:text-2xl md:text-5xl md:leading-[1.7]">
                     {openQuestion.question_text}
                   </h2>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between md:gap-4">
                   <button
                     type="button"
                     onClick={closeModal}
-                    className="rounded-2xl border border-white/10 px-6 py-3 font-semibold text-slate-300"
+                    className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-300 md:px-6"
                   >
                     إغلاق
                   </button>
@@ -418,26 +438,26 @@ export default function GameBoardClient({
                   <button
                     type="button"
                     onClick={revealAnswer}
-                    className="rounded-2xl bg-green-600 px-8 py-4 text-2xl font-black text-white"
+                    className="rounded-2xl bg-green-600 px-6 py-3 text-lg font-black text-white md:px-8 md:py-4 md:text-2xl"
                   >
                     الإجابة
                   </button>
                 </div>
               </div>
             ) : showAnswer && !showWinnerPicker ? (
-              <div className="space-y-8">
-                <div className="rounded-[2rem] border border-orange-400/40 bg-[#35363a] px-6 py-10 text-center">
-                  <div className="text-lg text-slate-300">الإجابة الصحيحة</div>
-                  <h2 className="mt-6 text-4xl font-black leading-[1.5] md:text-6xl">
+              <div className="space-y-5 md:space-y-8">
+                <div className="rounded-[1.5rem] border border-orange-400/40 bg-[#35363a] px-4 py-6 text-center md:rounded-[2rem] md:px-6 md:py-10">
+                  <div className="text-sm text-slate-300 md:text-lg">الإجابة الصحيحة</div>
+                  <h2 className="mt-4 text-2xl font-black leading-[1.7] sm:text-3xl md:mt-6 md:text-6xl md:leading-[1.5]">
                     {openQuestion.answer_text ?? "لا توجد إجابة"}
                   </h2>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between md:gap-4">
                   <button
                     type="button"
                     onClick={() => setShowAnswer(false)}
-                    className="rounded-2xl border border-white/10 px-6 py-3 font-semibold text-slate-300"
+                    className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-300 md:px-6"
                   >
                     ارجع للسؤال
                   </button>
@@ -445,21 +465,21 @@ export default function GameBoardClient({
                   <button
                     type="button"
                     onClick={goToWinnerPicker}
-                    className="rounded-2xl bg-red-600 px-8 py-4 text-2xl font-black text-white"
+                    className="rounded-2xl bg-red-600 px-6 py-3 text-lg font-black text-white md:px-8 md:py-4 md:text-2xl"
                   >
                     أي فريق؟
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-10 text-center">
-                <h2 className="text-4xl font-black md:text-6xl">أي فريق جاوب صح؟</h2>
+              <div className="space-y-6 text-center md:space-y-10">
+                <h2 className="text-2xl font-black md:text-6xl">أي فريق جاوب صح؟</h2>
 
-                <div className="grid gap-6 md:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-3 md:gap-6">
                   <button
                     type="button"
                     onClick={() => awardPoints("teamOne")}
-                    className="rounded-[2rem] bg-red-600 px-8 py-8 text-4xl font-black text-white"
+                    className="rounded-[1.5rem] bg-red-600 px-5 py-5 text-2xl font-black text-white md:rounded-[2rem] md:px-8 md:py-8 md:text-4xl"
                   >
                     {teamOne}
                   </button>
@@ -467,7 +487,7 @@ export default function GameBoardClient({
                   <button
                     type="button"
                     onClick={() => awardPoints("teamTwo")}
-                    className="rounded-[2rem] bg-red-600 px-8 py-8 text-4xl font-black text-white"
+                    className="rounded-[1.5rem] bg-red-600 px-5 py-5 text-2xl font-black text-white md:rounded-[2rem] md:px-8 md:py-8 md:text-4xl"
                   >
                     {teamTwo}
                   </button>
@@ -475,7 +495,7 @@ export default function GameBoardClient({
                   <button
                     type="button"
                     onClick={() => awardPoints("none")}
-                    className="rounded-[2rem] bg-slate-500 px-8 py-8 text-4xl font-black text-white"
+                    className="rounded-[1.5rem] bg-slate-500 px-5 py-5 text-2xl font-black text-white md:rounded-[2rem] md:px-8 md:py-8 md:text-4xl"
                   >
                     ولا أحد
                   </button>
@@ -485,7 +505,7 @@ export default function GameBoardClient({
                   <button
                     type="button"
                     onClick={() => setShowWinnerPicker(false)}
-                    className="rounded-2xl border border-white/10 px-6 py-3 font-semibold text-slate-300"
+                    className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-300 md:px-6"
                   >
                     العودة للإجابة
                   </button>
@@ -520,7 +540,7 @@ function PointsButton({
       type="button"
       disabled={!question || used}
       onClick={() => question && onOpen(question)}
-      className={`flex h-[52px] w-full items-center justify-center rounded-[1.4rem] text-2xl font-black transition ${
+      className={`flex h-[36px] w-full items-center justify-center rounded-[1rem] text-sm font-black transition sm:h-[40px] sm:rounded-[1.1rem] sm:text-base md:h-[52px] md:rounded-[1.4rem] md:text-2xl ${
         !question
           ? "cursor-not-allowed border border-white/5 bg-slate-900/30 text-slate-700"
           : used
@@ -548,12 +568,18 @@ function TeamCard({
       : "bg-cyan-400 text-slate-950";
 
   return (
-    <div className="rounded-[2rem] border border-white/10 bg-white/5 p-5 text-center">
-      <div className={`rounded-2xl px-4 py-3 text-xl font-black ${accentClass}`}>
-        {name}
+    <div className="rounded-[1.2rem] border border-white/10 bg-white/5 p-3 text-center sm:rounded-[1.4rem] sm:p-4 md:rounded-[2rem] md:p-5">
+      <div
+        className={`rounded-xl px-2 py-2 text-sm font-black sm:text-base md:rounded-2xl md:px-4 md:py-3 md:text-xl ${accentClass}`}
+      >
+        <span className="line-clamp-1 block">{name}</span>
       </div>
-      <div className="mt-5 text-6xl font-black">{score}</div>
-      <div className="mt-2 text-sm text-slate-400">نقطة</div>
+      <div className="mt-3 text-4xl font-black sm:text-5xl md:mt-5 md:text-6xl">
+        {score}
+      </div>
+      <div className="mt-1 text-[10px] text-slate-400 sm:text-xs md:mt-2 md:text-sm">
+        نقطة
+      </div>
     </div>
   );
 }
