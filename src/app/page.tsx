@@ -206,12 +206,12 @@ export default function HomePage() {
               <div className="flex flex-wrap gap-1.5 text-[8px] text-slate-200 max-[390px]:text-[7.5px] sm:gap-3 sm:text-sm">
                 <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-1 leading-none sm:px-4 sm:py-2">
                   <span className="sm:hidden">منصة عربية</span>
-                  <span className="hidden sm:inline">منصة عربية لألعاب الأسئلة</span>
+                  <span className="hidden sm:inline">منصة عربية للألعاب التفاعلية</span>
                 </span>
                 <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 leading-none sm:px-4 sm:py-2">
                   <span className="sm:hidden">للمدارس والفعاليات</span>
                   <span className="hidden sm:inline">
-                    مناسبة للمدارس والفعاليات
+                    مناسبة للمدارس والفعاليات والتجمعات
                   </span>
                 </span>
               </div>
@@ -223,21 +223,22 @@ export default function HomePage() {
 
                 <h1 className="mt-1.5 font-black leading-[1.08] text-white sm:mt-3 sm:text-4xl lg:text-5xl">
                   <span className="block text-[1.28rem] max-[390px]:text-[1.16rem] sm:hidden">
-                    حوّل أي مسابقة
+                   لعبة تحدي جماعية
                     <br />
-                    إلى تجربة تفاعلية
+                    تفاعلية و حماسية
                     <br />
                     ممتعة وسريعة
                   </span>
                   <span className="hidden sm:block">
-                    حوّل أي مسابقة إلى تجربة تفاعلية ممتعة وسريعة التنظيم
+                    لعبة تحدي جماعية , تفاعلية وحماسية ممتعة وسريعة
                   </span>
                 </h1>
 
                 <p className="mt-2 text-[10px] leading-5 text-slate-300 max-[390px]:text-[9px] sm:mt-4 sm:text-lg sm:leading-8">
                   <span className="sm:hidden">
-                    منصة عربية لتشغيل ألعاب الأسئلة بين فريقين بواجهة واضحة
-                    وجاهزة للعرض في المدارس والفعاليات والمناسبات.
+                    منصة عربية تساعدك على تشغيل ألعاب الأسئلة بين فريقين بواجهة
+                    أنيقة، تنظيم واضح، وتجربة جاهزة للعرض أمام الجمهور في المدارس
+                    والفعاليات والمناسبات الخاصة.
                   </span>
                   <span className="hidden sm:inline">
                     منصة عربية تساعدك على تشغيل ألعاب الأسئلة بين فريقين بواجهة
@@ -248,9 +249,9 @@ export default function HomePage() {
               </div>
 
               <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
-                <InfoStat title="تشغيل سريع" value="بدء فوري" />
-                <InfoStat title="تفاعل مباشر" value="فريقان وتحدي" />
-                <InfoStat title="حفظ التقدم" value="متابعة لاحقًا" />
+                <InfoStat title="" value="بدء فوري" />
+                <InfoStat title="" value="فريقان" />
+                <InfoStat title="" value="متابعة لاحقًا" />
               </div>
 
               <div className="rounded-[1.2rem] border border-white/10 bg-white/5 p-2.5 backdrop-blur sm:rounded-[1.75rem] sm:p-5">
