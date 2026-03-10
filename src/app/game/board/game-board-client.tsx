@@ -45,9 +45,19 @@ type CategoryVisual = {
   gradient: string;
 };
 
+type GroupedCategory = Category & {
+  rows: Array<
+    Array<{
+      points: number;
+      question: QuestionRow | null;
+      slotIndex: number;
+    }>
+  >;
+};
+
 const categoryVisuals: Record<string, CategoryVisual> = {
   history: {
-    emoji: "🏛️",
+    emoji: "🏺",
     gradient: "from-amber-300/20 via-orange-400/10 to-transparent",
   },
   sports: {
@@ -80,6 +90,15 @@ const MOBILE_CATEGORY_WIDTH = 150;
 const MOBILE_SIDEBAR_WIDTH = 170;
 const MOBILE_COLUMN_GAP = 12;
 const MOBILE_BOARD_HEIGHT = 500;
+const QUESTION_TIMER_SECONDS = 30;
+
+function formatCountdown(totalSeconds: number) {
+  const minutes = Math.floor(totalSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const seconds = (totalSeconds % 60).toString().padStart(2, "0");
+  return `${minutes}:${seconds}`;
+}
 
 export default function GameBoardClient({
   sessionId,
@@ -93,7 +112,7 @@ export default function GameBoardClient({
 }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mobileWrapRef = useRef<HTMLDivElement | null>(null);
 
   const [teamOneScore, setTeamOneScore] = useState(
@@ -107,6 +126,7 @@ export default function GameBoardClient({
       ? (initialBoardState.usedQuestionIds as string[])
       : questions.filter((q) => q.is_used).map((q) => q.id)
   );
+
   const [openQuestion, setOpenQuestion] = useState<OpenQuestion | null>(null);
   const [showAnswer, setShowAnswer] = useState(
     Boolean(initialBoardState?.showAnswer ?? false)
@@ -115,10 +135,12 @@ export default function GameBoardClient({
     Boolean(initialBoardState?.showWinnerPicker ?? false)
   );
   const [modalBusy, setModalBusy] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(QUESTION_TIMER_SECONDS);
+  const [timerRunning, setTimerRunning] = useState(false);
   const [mobileScale, setMobileScale] = useState(1);
   const [mobileHeight, setMobileHeight] = useState(MOBILE_BOARD_HEIGHT);
 
-  const grouped = useMemo(() => {
+  const grouped = useMemo<GroupedCategory[]>(() => {
     const targetPattern = [200, 200, 400, 400, 600, 600];
 
     return categories.map((category) => {
@@ -132,8 +154,9 @@ export default function GameBoardClient({
       const slots = targetPattern.map((points, index) => {
         const matched = categoryQuestions.filter((q) => q.points === points);
         const samePointIndex =
-          targetPattern.slice(0, index + 1).filter((value) => value === points)
-            .length - 1;
+          targetPattern
+            .slice(0, index + 1)
+            .filter((value) => value === points).length - 1;
 
         return {
           points,
@@ -166,6 +189,15 @@ export default function GameBoardClient({
               categoryName: category.name,
               slotIndex: slot.slotIndex,
             });
+
+            if (
+              !Boolean(initialBoardState?.showAnswer ?? false) &&
+              !Boolean(initialBoardState?.showWinnerPicker ?? false)
+            ) {
+              setTimeLeft(QUESTION_TIMER_SECONDS);
+              setTimerRunning(true);
+            }
+
             return;
           }
         }
@@ -186,9 +218,7 @@ export default function GameBoardClient({
   useEffect(() => {
     if (playableQuestionIds.length === 0) return;
 
-    const allUsed = playableQuestionIds.every((id) =>
-      usedQuestionIds.includes(id)
-    );
+    const allUsed = playableQuestionIds.every((id) => usedQuestionIds.includes(id));
 
     if (allUsed && !openQuestion) {
       const params = new URLSearchParams({
@@ -229,8 +259,8 @@ export default function GameBoardClient({
       clearTimeout(saveTimeoutRef.current);
     }
 
-    saveTimeoutRef.current = setTimeout(async () => {
-      await supabase.rpc("update_game_board_state", {
+    saveTimeoutRef.current = setTimeout(() => {
+      void supabase.rpc("update_game_board_state", {
         p_session_id: sessionId,
         p_user_id: userId,
         p_board_state: boardState,
@@ -259,7 +289,6 @@ export default function GameBoardClient({
       if (window.innerWidth >= 768) return;
 
       const categoriesCount = Math.max(grouped.length, 1);
-
       const boardWidth =
         categoriesCount * MOBILE_CATEGORY_WIDTH +
         MOBILE_SIDEBAR_WIDTH +
@@ -269,15 +298,12 @@ export default function GameBoardClient({
       const wrapWidth = mobileWrapRef.current?.clientWidth ?? window.innerWidth;
       const availableWidth = Math.max(wrapWidth - 4, 220);
 
-      const viewportHeight =
-        window.visualViewport?.height ?? window.innerHeight ?? 700;
-
+      const viewportHeight = window.visualViewport?.height ?? window.innerHeight ?? 700;
       const reservedTop = 145;
       const availableHeight = Math.max(viewportHeight - reservedTop, 220);
 
       const scaleByWidth = availableWidth / boardWidth;
       const scaleByHeight = availableHeight / MOBILE_BOARD_HEIGHT;
-
       const nextScale = Math.min(scaleByWidth, scaleByHeight, 1);
 
       setMobileScale(nextScale);
@@ -291,6 +317,7 @@ export default function GameBoardClient({
     window.addEventListener("orientationchange", resizeHandler);
 
     let resizeObserver: ResizeObserver | null = null;
+
     if (mobileWrapRef.current && typeof ResizeObserver !== "undefined") {
       resizeObserver = new ResizeObserver(() => updateMobileBoardScale());
       resizeObserver.observe(mobileWrapRef.current);
@@ -303,6 +330,26 @@ export default function GameBoardClient({
     };
   }, [grouped.length]);
 
+  useEffect(() => {
+    if (!openQuestion || showAnswer || showWinnerPicker || !timerRunning) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          window.clearInterval(timer);
+          setTimerRunning(false);
+          return 0;
+        }
+
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [openQuestion, showAnswer, showWinnerPicker, timerRunning]);
+
   function openQuestionCard(
     question: QuestionRow,
     categoryName: string,
@@ -313,6 +360,8 @@ export default function GameBoardClient({
     setOpenQuestion({ ...question, categoryName, slotIndex });
     setShowAnswer(false);
     setShowWinnerPicker(false);
+    setTimeLeft(QUESTION_TIMER_SECONDS);
+    setTimerRunning(true);
   }
 
   function closeModal() {
@@ -322,6 +371,8 @@ export default function GameBoardClient({
     setOpenQuestion(null);
     setShowAnswer(false);
     setShowWinnerPicker(false);
+    setTimerRunning(false);
+    setTimeLeft(QUESTION_TIMER_SECONDS);
 
     setTimeout(() => {
       setModalBusy(false);
@@ -334,6 +385,7 @@ export default function GameBoardClient({
 
     setShowAnswer(true);
     setShowWinnerPicker(false);
+    setTimerRunning(false);
 
     setTimeout(() => {
       setModalBusy(false);
@@ -345,6 +397,7 @@ export default function GameBoardClient({
     setModalBusy(true);
 
     setShowWinnerPicker(true);
+    setTimerRunning(false);
 
     setTimeout(() => {
       setModalBusy(false);
@@ -357,6 +410,8 @@ export default function GameBoardClient({
 
     setShowAnswer(false);
     setShowWinnerPicker(false);
+    setTimeLeft(QUESTION_TIMER_SECONDS);
+    setTimerRunning(true);
 
     setTimeout(() => {
       setModalBusy(false);
@@ -369,6 +424,7 @@ export default function GameBoardClient({
 
     setShowWinnerPicker(false);
     setShowAnswer(true);
+    setTimerRunning(false);
 
     setTimeout(() => {
       setModalBusy(false);
@@ -389,10 +445,23 @@ export default function GameBoardClient({
     setOpenQuestion(null);
     setShowAnswer(false);
     setShowWinnerPicker(false);
+    setTimerRunning(false);
+    setTimeLeft(QUESTION_TIMER_SECONDS);
 
     setTimeout(() => {
       setModalBusy(false);
     }, 220);
+  }
+
+  function toggleTimer() {
+    if (!openQuestion || showAnswer || showWinnerPicker) return;
+    setTimerRunning((prev) => !prev);
+  }
+
+  function resetTimer() {
+    if (!openQuestion) return;
+    setTimeLeft(QUESTION_TIMER_SECONDS);
+    setTimerRunning(!showAnswer && !showWinnerPicker);
   }
 
   function increaseTeamOneScore() {
@@ -425,86 +494,37 @@ export default function GameBoardClient({
     24;
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-slate-950 text-white">
-      <div className="border-b border-white/10 bg-gradient-to-l from-white/10 via-white/5 to-transparent px-3 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4">
-        <div className="mx-auto flex max-w-[1700px] items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Link
-              href="/game/start"
-              className="rounded-2xl border border-white/10 px-3 py-2 text-[11px] font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white md:hidden"
-            >
-              لعبة جديدة
-            </Link>
-          </div>
+    <main dir="rtl" className="min-h-screen bg-slate-950 text-white">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1700px] flex-col px-3 py-3 md:px-5 md:py-5">
+        <header className="mb-3 rounded-[1.5rem] border border-white/10 bg-white/[0.04] px-4 py-3 md:mb-5 md:rounded-[2rem] md:px-6 md:py-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-cyan-300 md:text-sm">SeenJeem</p>
+              <h1 className="mt-1 text-lg font-black md:text-2xl">{gameName}</h1>
+            </div>
 
-          <div className="text-center">
-            <div className="text-[10px] text-slate-400 sm:text-xs">اسم اللعبة</div>
-            <div className="text-base font-black sm:text-lg md:text-3xl">
-              {gameName}
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/game/start"
+                className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-200 transition hover:bg-cyan-400/20"
+              >
+                لعبة جديدة
+              </Link>
+              <Link
+                href="/account"
+                className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10"
+              >
+                الخروج
+              </Link>
             </div>
           </div>
+        </header>
 
-          <div className="hidden items-center gap-3 md:flex">
-            <Link
-              href="/game/start"
-              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
-            >
-              لعبة جديدة
-            </Link>
-            <Link
-              href="/"
-              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
-            >
-              الخروج
-            </Link>
-          </div>
+        <div className="mb-3 rounded-[1.25rem] border border-orange-400/20 bg-orange-400/10 px-4 py-3 text-center text-sm text-orange-50 md:mb-5 md:text-base">
+          الحكم هو من يحدد الفريق الصحيح
         </div>
 
-        <div className="mx-auto mt-2 flex max-w-[1700px] justify-center md:mt-3">
-          <div className="rounded-full bg-orange-400 px-4 py-2 text-center text-[11px] font-black text-slate-950 sm:px-6 sm:text-sm md:px-8 md:py-3 md:text-xl">
-            الحكم هو من يحدد الفريق الصحيح
-          </div>
-        </div>
-      </div>
-
-      <div className="block px-2 py-2 md:hidden">
-        <div
-          ref={mobileWrapRef}
-          className="relative mx-auto w-full overflow-hidden"
-          style={{ height: mobileHeight }}
-        >
-          <div
-            className="absolute top-0 rounded-[24px] border border-white/10 bg-slate-950/80 p-3"
-            style={{
-              left: "50%",
-              width: mobileBoardWidth,
-              height: MOBILE_BOARD_HEIGHT,
-              transform: `translateX(-50%) scale(${mobileScale})`,
-              transformOrigin: "top center",
-            }}
-          >
-            <BoardContent
-              compact
-              gameName={gameName}
-              teamOne={teamOne}
-              teamTwo={teamTwo}
-              teamOneScore={teamOneScore}
-              teamTwoScore={teamTwoScore}
-              leadingTeam={leadingTeam}
-              grouped={grouped}
-              usedQuestionIds={usedQuestionIds}
-              onOpenQuestion={openQuestionCard}
-              onIncTeamOne={increaseTeamOneScore}
-              onDecTeamOne={decreaseTeamOneScore}
-              onIncTeamTwo={increaseTeamTwoScore}
-              onDecTeamTwo={decreaseTeamTwoScore}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="hidden px-4 py-5 md:block md:px-6">
-        <div className="mx-auto max-w-[1700px] rounded-[2rem] border border-white/10 bg-slate-950/70 p-5 xl:p-6">
+        <div className="hidden md:block">
           <BoardContent
             gameName={gameName}
             teamOne={teamOne}
@@ -521,42 +541,81 @@ export default function GameBoardClient({
             onDecTeamTwo={decreaseTeamTwoScore}
           />
         </div>
+
+        <div ref={mobileWrapRef} className="md:hidden">
+          <div
+            className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/[0.03]"
+            style={{ height: mobileHeight }}
+          >
+            <div
+              style={{
+                width: mobileBoardWidth,
+                transform: `scale(${mobileScale})`,
+                transformOrigin: "top right",
+              }}
+            >
+              <BoardContent
+                gameName={gameName}
+                teamOne={teamOne}
+                teamTwo={teamTwo}
+                teamOneScore={teamOneScore}
+                teamTwoScore={teamTwoScore}
+                leadingTeam={leadingTeam}
+                grouped={grouped}
+                usedQuestionIds={usedQuestionIds}
+                onOpenQuestion={openQuestionCard}
+                onIncTeamOne={increaseTeamOneScore}
+                onDecTeamOne={decreaseTeamOneScore}
+                onIncTeamTwo={increaseTeamTwoScore}
+                onDecTeamTwo={decreaseTeamTwoScore}
+                compact
+              />
+            </div>
+          </div>
+        </div>
       </div>
 
       {openQuestion ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 px-3 py-4 md:px-4 md:py-6">
-          <div className="w-full max-w-7xl rounded-[1.5rem] border border-orange-400/40 bg-[#2e2f33] p-4 shadow-2xl md:rounded-[2.5rem] md:p-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 p-3 backdrop-blur-sm md:p-8">
+          <div className="relative w-full max-w-7xl rounded-[1.5rem] border border-orange-400/40 bg-[#2e2f33] p-4 pt-16 shadow-2xl md:rounded-[2.5rem] md:p-8 md:pt-20">
+            <QuestionTimerBar
+              visible={!showAnswer && !showWinnerPicker}
+              timeLabel={formatCountdown(timeLeft)}
+              isRunning={timerRunning}
+              onToggle={toggleTimer}
+              onReset={resetTimer}
+            />
+
             {!showAnswer && !showWinnerPicker ? (
               <div className="space-y-5 md:space-y-8">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="rounded-full bg-orange-400 px-3 py-2 text-xs font-bold text-slate-950 md:px-4 md:text-sm">
+                  <div className="rounded-2xl bg-black px-4 py-2 text-sm font-black text-white md:px-5 md:py-3 md:text-2xl">
                     {openQuestion.points} نقطة
                   </div>
-                  <div className="rounded-full bg-slate-900 px-3 py-2 text-xs font-bold text-slate-200 md:px-4 md:text-sm">
+
+                  <div className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-black text-white md:px-5 md:py-3 md:text-2xl">
                     {openQuestion.categoryName}
                   </div>
                 </div>
 
-                <div className="rounded-[1.5rem] border border-orange-400/40 bg-[#35363a] px-5 py-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] md:rounded-[2rem] md:px-10 md:py-12">
-                  {(openQuestion.year_tolerance_before ||
-                    openQuestion.year_tolerance_after) ? (
-                    <div className="mb-4 flex justify-center">
-                      <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-300">
-                        السماحية: قبل {openQuestion.year_tolerance_before ?? 0} /
-                        بعد {openQuestion.year_tolerance_after ?? 0} سنة
-                      </div>
-                    </div>
-                  ) : null}
+                {(openQuestion.year_tolerance_before ||
+                  openQuestion.year_tolerance_after) && (
+                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm text-slate-200 md:text-lg">
+                    السماحية: قبل {openQuestion.year_tolerance_before ?? 0} / بعد{" "}
+                    {openQuestion.year_tolerance_after ?? 0} سنة
+                  </div>
+                )}
 
+                <div className="rounded-[1.5rem] border border-orange-400/50 bg-white/[0.03] p-4 md:rounded-[2rem] md:p-8">
                   <RichHtmlContent html={openQuestion.question_text} />
                 </div>
 
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between md:gap-4">
+                <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
                   <button
                     type="button"
                     onClick={closeModal}
                     disabled={modalBusy}
-                    className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-300 disabled:opacity-50 md:px-6"
+                    className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-base font-bold text-white transition hover:bg-white/10 disabled:opacity-50"
                   >
                     إغلاق
                   </button>
@@ -565,7 +624,7 @@ export default function GameBoardClient({
                     type="button"
                     onClick={revealAnswer}
                     disabled={modalBusy}
-                    className="rounded-2xl bg-green-600 px-6 py-3 text-lg font-black text-white disabled:opacity-50 md:px-8 md:py-4 md:text-2xl"
+                    className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-green-600 px-6 py-3 text-base font-black text-white transition hover:bg-green-500 disabled:opacity-50"
                   >
                     الإجابة
                   </button>
@@ -573,30 +632,35 @@ export default function GameBoardClient({
               </div>
             ) : showAnswer && !showWinnerPicker ? (
               <div className="space-y-5 md:space-y-8">
-                <div className="rounded-[1.5rem] border border-orange-400/40 bg-[#35363a] px-5 py-8 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] md:rounded-[2rem] md:px-10 md:py-12">
-                  {(openQuestion.year_tolerance_before ||
-                    openQuestion.year_tolerance_after) ? (
-                    <div className="mb-4 flex justify-center">
-                      <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-sm font-bold text-cyan-300">
-                        السماحية المقبولة: قبل {openQuestion.year_tolerance_before ?? 0} /
-                        بعد {openQuestion.year_tolerance_after ?? 0} سنة
-                      </div>
-                    </div>
-                  ) : null}
-
-                  <div className="mb-4 text-sm text-slate-300 md:text-lg">
-                    الإجابة الصحيحة
+                {(openQuestion.year_tolerance_before ||
+                  openQuestion.year_tolerance_after) && (
+                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-center text-sm text-slate-200 md:text-lg">
+                    السماحية المقبولة: قبل {openQuestion.year_tolerance_before ?? 0} / بعد{" "}
+                    {openQuestion.year_tolerance_after ?? 0} سنة
                   </div>
+                )}
 
-                  <RichHtmlContent html={openQuestion.answer_text ?? ""} />
+                <div className="rounded-[1.5rem] border border-emerald-400/40 bg-emerald-500/10 p-4 text-center md:rounded-[2rem] md:p-6">
+                  <h2 className="text-2xl font-black text-white md:text-4xl">
+                    الإجابة الصحيحة
+                  </h2>
                 </div>
 
-                <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between md:gap-4">
+                <div className="rounded-[1.5rem] border border-emerald-400/40 bg-white/[0.03] p-4 md:rounded-[2rem] md:p-8">
+                  <RichHtmlContent
+                    html={
+                      openQuestion.answer_text?.trim() ||
+                      "<p>لا توجد إجابة محفوظة لهذا السؤال.</p>"
+                    }
+                  />
+                </div>
+
+                <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
                   <button
                     type="button"
                     onClick={backToQuestion}
                     disabled={modalBusy}
-                    className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-300 disabled:opacity-50 md:px-6"
+                    className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-base font-bold text-white transition hover:bg-white/10 disabled:opacity-50"
                   >
                     ارجع للسؤال
                   </button>
@@ -605,22 +669,26 @@ export default function GameBoardClient({
                     type="button"
                     onClick={goToWinnerPicker}
                     disabled={modalBusy}
-                    className="rounded-2xl bg-red-600 px-6 py-3 text-lg font-black text-white disabled:opacity-50 md:px-8 md:py-4 md:text-2xl"
+                    className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-orange-500 px-6 py-3 text-base font-black text-white transition hover:bg-orange-400 disabled:opacity-50"
                   >
                     أي فريق؟
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="space-y-6 text-center md:space-y-10">
-                <h2 className="text-2xl font-black md:text-6xl">أي فريق جاوب صح؟</h2>
+              <div className="space-y-5 md:space-y-8">
+                <div className="text-center">
+                  <h2 className="text-3xl font-black text-white md:text-5xl">
+                    أي فريق جاوب صح؟
+                  </h2>
+                </div>
 
-                <div className="grid gap-3 md:grid-cols-3 md:gap-6">
+                <div className="grid gap-3 md:grid-cols-3">
                   <button
                     type="button"
                     onClick={() => awardPoints("teamOne")}
                     disabled={modalBusy}
-                    className="rounded-[1.5rem] bg-red-600 px-5 py-5 text-2xl font-black text-white disabled:opacity-50 md:rounded-[2rem] md:px-8 md:py-8 md:text-4xl"
+                    className="rounded-[1.5rem] bg-red-600 px-5 py-5 text-2xl font-black text-white transition hover:bg-red-500 disabled:opacity-50 md:rounded-[2rem] md:px-8 md:py-8 md:text-4xl"
                   >
                     {teamOne}
                   </button>
@@ -629,7 +697,7 @@ export default function GameBoardClient({
                     type="button"
                     onClick={() => awardPoints("teamTwo")}
                     disabled={modalBusy}
-                    className="rounded-[1.5rem] bg-red-600 px-5 py-5 text-2xl font-black text-white disabled:opacity-50 md:rounded-[2rem] md:px-8 md:py-8 md:text-4xl"
+                    className="rounded-[1.5rem] bg-red-600 px-5 py-5 text-2xl font-black text-white transition hover:bg-red-500 disabled:opacity-50 md:rounded-[2rem] md:px-8 md:py-8 md:text-4xl"
                   >
                     {teamTwo}
                   </button>
@@ -638,7 +706,7 @@ export default function GameBoardClient({
                     type="button"
                     onClick={() => awardPoints("none")}
                     disabled={modalBusy}
-                    className="rounded-[1.5rem] bg-slate-500 px-5 py-5 text-2xl font-black text-white disabled:opacity-50 md:rounded-[2rem] md:px-8 md:py-8 md:text-4xl"
+                    className="rounded-[1.5rem] bg-slate-500 px-5 py-5 text-2xl font-black text-white transition hover:bg-slate-400 disabled:opacity-50 md:rounded-[2rem] md:px-8 md:py-8 md:text-4xl"
                   >
                     ولا أحد
                   </button>
@@ -649,7 +717,7 @@ export default function GameBoardClient({
                     type="button"
                     onClick={backToAnswer}
                     disabled={modalBusy}
-                    className="rounded-2xl border border-white/10 px-5 py-3 text-sm font-semibold text-slate-300 disabled:opacity-50 md:px-6"
+                    className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-6 py-3 text-base font-bold text-white transition hover:bg-white/10 disabled:opacity-50"
                   >
                     العودة للإجابة
                   </button>
@@ -685,19 +753,7 @@ function BoardContent({
   teamOneScore: number;
   teamTwoScore: number;
   leadingTeam: "teamOne" | "teamTwo" | "tie";
-  grouped: Array<{
-    id: string;
-    name: string;
-    slug: string;
-    image_url: string | null;
-    rows: Array<
-      Array<{
-        points: number;
-        question: QuestionRow | null;
-        slotIndex: number;
-      }>
-    >;
-  }>;
+  grouped: GroupedCategory[];
   usedQuestionIds: string[];
   onOpenQuestion: (
     question: QuestionRow,
@@ -711,33 +767,40 @@ function BoardContent({
   compact?: boolean;
 }) {
   const categoryCount = Math.max(grouped.length, 1);
-  const sidebarWidth = compact ? 170 : 250;
-  const gap = compact ? 12 : 16;
+  const sidebarWidth = compact ? MOBILE_SIDEBAR_WIDTH : 250;
+  const gap = compact ? MOBILE_COLUMN_GAP : 16;
+
   const columns =
     categoryCount > 0
-      ? `repeat(${categoryCount}, minmax(0, 1fr)) ${sidebarWidth}px`
+      ? compact
+        ? `repeat(${categoryCount}, ${MOBILE_CATEGORY_WIDTH}px) ${sidebarWidth}px`
+        : `repeat(${categoryCount}, minmax(0, 1fr)) ${sidebarWidth}px`
       : `${sidebarWidth}px`;
 
   return (
-    <div className="h-full w-full" dir="ltr">
-      <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2">
-        <div
-          className={`font-black text-cyan-400 ${
-            compact ? "text-4xl" : "text-5xl"
-          }`}
-        >
+    <div
+      className={`rounded-[1.75rem] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 ${
+        compact ? "p-3" : "p-4 md:rounded-[2.25rem] md:p-5"
+      }`}
+    >
+      <div
+        className={`mb-3 flex items-center justify-between ${compact ? "text-xs" : "text-sm md:mb-4"}`}
+      >
+        <div className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-cyan-200">
           SeenJeem
         </div>
-        <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-1 text-sm font-black text-cyan-300">
-          لعبة
-        </div>
+        {!compact ? (
+          <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-slate-300">
+            لعبة
+          </div>
+        ) : null}
       </div>
 
       <div
         className="grid items-start"
         style={{
+          gap,
           gridTemplateColumns: columns,
-          gap: `${gap}px`,
         }}
       >
         {grouped.map((category) => (
@@ -751,52 +814,52 @@ function BoardContent({
         ))}
 
         {grouped.length === 0 ? (
-          <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-6 py-8 text-center text-red-200">
+          <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5 text-center text-slate-300">
             لا توجد فئات أو أسئلة جاهزة لهذه الجلسة.
           </div>
         ) : null}
 
-        <div className="flex flex-col gap-3" dir="rtl">
-          <SideTeamCard
-            compact={compact}
-            name={teamOne}
-            score={teamOneScore}
-            accent="cyan"
-            isLeading={leadingTeam === "teamOne"}
-            onIncrease={onIncTeamOne}
-            onDecrease={onDecTeamOne}
-          />
-
-          <SideTeamCard
-            compact={compact}
-            name={teamTwo}
-            score={teamTwoScore}
-            accent="orange"
-            isLeading={leadingTeam === "teamTwo"}
-            onIncrease={onIncTeamTwo}
-            onDecrease={onDecTeamTwo}
-          />
-
-          <div
-            className={`rounded-2xl border border-white/10 bg-white/5 px-3 text-center font-bold text-slate-300 ${
-              compact ? "py-3 text-sm" : "py-4 text-base"
-            }`}
-          >
-            {leadingTeam === "tie"
-              ? "لا يوجد متصدر حاليًا"
-              : `المتصدر الآن: ${
-                  leadingTeam === "teamOne" ? teamOne : teamTwo
-                }`}
+        <div
+          className={`rounded-[1.5rem] border border-white/10 bg-white/[0.04] ${
+            compact ? "p-3" : "p-4 md:rounded-[2rem] md:p-5"
+          }`}
+        >
+          <div className="rounded-[1.25rem] border border-white/10 bg-white/5 p-3 text-center">
+            <p className={`${compact ? "text-[11px]" : "text-sm"} text-slate-400`}>
+              {leadingTeam === "tie"
+                ? "لا يوجد متصدر حاليًا"
+                : `المتصدر الآن: ${
+                    leadingTeam === "teamOne" ? teamOne : teamTwo
+                  }`}
+            </p>
           </div>
 
           {!compact ? (
-            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-center">
-              <div className="text-sm text-slate-400">الجولة الحالية</div>
-              <div className="mt-2 text-2xl font-black text-cyan-300">
-                {gameName}
-              </div>
+            <div className="mt-4 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 text-center">
+              <p className="text-sm text-slate-400">الجولة الحالية</p>
+              <p className="mt-2 text-2xl font-black text-white">{gameName}</p>
             </div>
           ) : null}
+
+          <div className="mt-4 space-y-3">
+            <ScoreCard
+              compact={compact}
+              title={teamOne}
+              score={teamOneScore}
+              highlighted={leadingTeam === "teamOne"}
+              onIncrease={onIncTeamOne}
+              onDecrease={onDecTeamOne}
+            />
+
+            <ScoreCard
+              compact={compact}
+              title={teamTwo}
+              score={teamTwoScore}
+              highlighted={leadingTeam === "teamTwo"}
+              onIncrease={onIncTeamTwo}
+              onDecrease={onDecTeamTwo}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -809,19 +872,7 @@ function BoardCategoryColumn({
   onOpenQuestion,
   compact,
 }: {
-  category: {
-    id: string;
-    name: string;
-    slug: string;
-    image_url: string | null;
-    rows: Array<
-      Array<{
-        points: number;
-        question: QuestionRow | null;
-        slotIndex: number;
-      }>
-    >;
-  };
+  category: GroupedCategory;
   usedQuestionIds: string[];
   onOpenQuestion: (
     question: QuestionRow,
@@ -833,226 +884,224 @@ function BoardCategoryColumn({
   const visual = categoryVisuals[category.slug] ?? categoryVisuals.default;
 
   return (
-    <div className="flex flex-col gap-2" dir="rtl">
-      <div
-        className={`overflow-hidden border border-white/10 bg-slate-900/70 ${
-          compact ? "rounded-[18px]" : "rounded-[22px]"
-        }`}
-      >
+    <div
+      className={`overflow-hidden rounded-[1.5rem] border border-white/10 bg-white/[0.04] ${
+        compact ? "w-[150px]" : ""
+      }`}
+    >
+      <div className={`relative bg-slate-900 ${compact ? "p-2.5" : "p-3 md:p-4"}`}>
         <div
-          className={`relative bg-gradient-to-br ${visual.gradient} ${
-            compact ? "h-[126px]" : "h-[180px]"
-          }`}
-        >
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_30%)]" />
+          className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${visual.gradient}`}
+        />
 
-          <div className="relative flex h-full items-center justify-center px-3">
+        <div className="relative">
+          <div
+            className={`mb-3 overflow-hidden rounded-[1.1rem] border border-white/10 bg-white/5 ${
+              compact ? "aspect-[1.2/1]" : "aspect-[1.4/1]"
+            }`}
+          >
             {category.image_url ? (
               <img
                 src={category.image_url}
                 alt={category.name}
-                className={`object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,0.35)] ${
-                  compact ? "h-[70px] w-[70px]" : "h-[110px] w-[110px]"
-                }`}
+                className="h-full w-full object-cover"
               />
             ) : (
-              <div className={compact ? "text-5xl" : "text-7xl"}>
+              <div className="flex h-full items-center justify-center text-4xl">
                 {visual.emoji}
               </div>
             )}
           </div>
 
-          <div
-            className={`absolute inset-x-0 bottom-0 border-t border-white/10 bg-slate-950/80 px-2 text-center ${
-              compact ? "py-2" : "py-3"
-            }`}
-          >
-            <div
-              className={`line-clamp-2 font-black ${
-                compact ? "text-[18px] leading-6" : "text-[24px] leading-8"
+          <div className="rounded-[1rem] bg-black/30 px-3 py-2 text-center">
+            <p
+              className={`font-black text-white ${
+                compact ? "text-sm leading-5" : "text-lg md:text-xl"
               }`}
             >
               {category.name}
-            </div>
+            </p>
           </div>
         </div>
       </div>
 
-      <div className="grid gap-2">
-        {category.rows.map((row, rowIndex) => (
-          <div
-            key={`${category.id}-${rowIndex}`}
-            className="grid grid-cols-2 gap-2"
-          >
-            {row.map((slot) => (
-              <BoardPointsButton
-                key={`${category.id}-${slot.slotIndex}`}
-                compact={compact}
-                slot={slot}
-                usedQuestionIds={usedQuestionIds}
-                categoryName={category.name}
-                onOpenQuestion={onOpenQuestion}
-              />
-            ))}
-          </div>
-        ))}
+      <div className={`${compact ? "p-2" : "p-3 md:p-4"}`}>
+        <div className="space-y-2.5">
+          {category.rows.map((row, rowIndex) => (
+            <div key={rowIndex} className="grid grid-cols-2 gap-2.5">
+              {row.map((slot) => {
+                const used = slot.question
+                  ? usedQuestionIds.includes(slot.question.id)
+                  : true;
+
+                return (
+                  <QuestionTile
+                    key={`${category.id}-${slot.slotIndex}`}
+                    compact={compact}
+                    points={slot.points}
+                    disabled={!slot.question || used}
+                    onClick={() => {
+                      if (!slot.question) return;
+                      onOpenQuestion(slot.question, category.name, slot.slotIndex);
+                    }}
+                  />
+                );
+              })}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
 }
 
-function BoardPointsButton({
-  slot,
-  usedQuestionIds,
-  categoryName,
-  onOpenQuestion,
+function QuestionTile({
   compact,
+  points,
+  disabled,
+  onClick,
 }: {
-  slot: {
-    points: number;
-    question: QuestionRow | null;
-    slotIndex: number;
-  };
-  usedQuestionIds: string[];
-  categoryName: string;
-  onOpenQuestion: (
-    question: QuestionRow,
-    categoryName: string,
-    slotIndex: number
-  ) => void;
   compact: boolean;
+  points: number;
+  disabled: boolean;
+  onClick: () => void;
 }) {
-  const question = slot.question;
-  const used = question ? usedQuestionIds.includes(question.id) : true;
-
   return (
     <button
       type="button"
-      disabled={!question || used}
-      onClick={() =>
-        question && onOpenQuestion(question, categoryName, slot.slotIndex)
-      }
-      className={`font-black transition ${
-        compact
-          ? "h-[48px] rounded-[14px] text-[22px]"
-          : "h-[64px] rounded-[18px] text-[28px]"
-      } ${
-        !question
-          ? "cursor-not-allowed border border-white/5 bg-slate-900/30 text-slate-700"
-          : used
-          ? "cursor-not-allowed border border-white/10 bg-slate-900/60 text-slate-500 line-through"
-          : "border border-white/10 bg-[#151922] text-white hover:border-cyan-400/30 hover:bg-cyan-400/10 hover:text-cyan-300"
-      }`}
+      disabled={disabled}
+      onClick={onClick}
+      className={`rounded-[1rem] border font-black transition ${
+        disabled
+          ? "cursor-not-allowed border-white/10 bg-slate-800/70 text-slate-500"
+          : "border-cyan-400/20 bg-cyan-400/10 text-cyan-200 hover:-translate-y-0.5 hover:bg-cyan-400/20"
+      } ${compact ? "px-2 py-4 text-sm" : "px-3 py-5 text-xl md:text-2xl"}`}
     >
-      {slot.points}
+      {disabled ? "—" : points}
     </button>
   );
 }
 
-function SideTeamCard({
-  name,
+function ScoreCard({
+  compact,
+  title,
   score,
-  accent,
-  isLeading,
+  highlighted,
   onIncrease,
   onDecrease,
-  compact,
 }: {
-  name: string;
+  compact: boolean;
+  title: string;
   score: number;
-  accent: "cyan" | "orange";
-  isLeading: boolean;
+  highlighted: boolean;
   onIncrease: () => void;
   onDecrease: () => void;
-  compact: boolean;
 }) {
-  const theme =
-    accent === "cyan"
-      ? {
-          badge: "bg-cyan-400 text-slate-950",
-          wrapper: isLeading
-            ? "border-cyan-300/40 bg-cyan-400/10 shadow-[0_0_28px_rgba(34,211,238,0.14)]"
-            : "border-white/10 bg-white/5",
-          action:
-            "border-cyan-400/30 bg-cyan-400/10 text-cyan-300 hover:bg-cyan-400/20",
-        }
-      : {
-          badge: "bg-orange-400 text-slate-950",
-          wrapper: isLeading
-            ? "border-orange-300/40 bg-orange-400/10 shadow-[0_0_28px_rgba(251,146,60,0.14)]"
-            : "border-white/10 bg-white/5",
-          action:
-            "border-orange-400/30 bg-orange-400/10 text-orange-300 hover:bg-orange-400/20",
-        };
-
   return (
     <div
-      className={`rounded-[18px] border ${theme.wrapper} ${
-        compact ? "p-3" : "p-4"
-      }`}
+      className={`rounded-[1.25rem] border ${
+        highlighted
+          ? "border-emerald-400/30 bg-emerald-500/10"
+          : "border-white/10 bg-white/5"
+      } ${compact ? "p-2.5" : "p-3 md:p-4"}`}
     >
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div
-          className={`rounded-xl font-black ${theme.badge} ${
-            compact ? "px-3 py-1.5 text-sm" : "px-4 py-2 text-base"
+      <div className="text-center">
+        <p className={`${compact ? "text-xs" : "text-sm"} text-slate-300`}>
+          {title}
+        </p>
+        <p
+          className={`mt-2 font-black text-white ${
+            compact ? "text-2xl" : "text-4xl"
           }`}
         >
-          {name}
-        </div>
-
-        {isLeading ? (
-          <div className="rounded-full border border-amber-300/30 bg-amber-400/10 px-2 py-1 text-[10px] font-bold text-amber-200">
-            متصدر
-          </div>
-        ) : (
-          <div className="h-[22px]" />
-        )}
+          {score}
+        </p>
       </div>
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="mt-3 grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={onIncrease}
-          className={`flex items-center justify-center rounded-full border font-black transition ${theme.action} ${
-            compact ? "h-9 w-9 text-xl" : "h-11 w-11 text-2xl"
+          className={`rounded-xl bg-emerald-500 px-3 py-2 font-black text-white transition hover:bg-emerald-400 ${
+            compact ? "text-sm" : "text-lg"
           }`}
         >
           +
         </button>
-
-        <div
-          className={`rounded-2xl border border-white/10 bg-slate-900/70 text-center ${
-            compact ? "min-w-[64px] px-3 py-2" : "min-w-[92px] px-5 py-3"
+        <button
+          type="button"
+          onClick={onDecrease}
+          className={`rounded-xl bg-red-500 px-3 py-2 font-black text-white transition hover:bg-red-400 ${
+            compact ? "text-sm" : "text-lg"
           }`}
         >
-          <div
-            className={
-              compact
-                ? "text-[34px] font-black leading-none"
-                : "text-5xl font-black"
-            }
-          >
-            {score}
-          </div>
+          -
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function QuestionTimerBar({
+  visible,
+  timeLabel,
+  isRunning,
+  onToggle,
+  onReset,
+}: {
+  visible: boolean;
+  timeLabel: string;
+  isRunning: boolean;
+  onToggle: () => void;
+  onReset: () => void;
+}) {
+  if (!visible) return null;
+
+  return (
+    <div className="absolute left-1/2 top-3 z-20 -translate-x-1/2 md:top-5">
+      <div className="flex items-center gap-3 rounded-full border border-white/10 bg-[#2b2540]/95 px-4 py-2.5 shadow-[0_12px_30px_rgba(0,0,0,0.3)] backdrop-blur md:gap-6 md:px-8 md:py-3">
+        <button
+          type="button"
+          onClick={onToggle}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-white transition hover:bg-white/10 md:h-11 md:w-11"
+          aria-label={isRunning ? "إيقاف المؤقت مؤقتًا" : "تشغيل المؤقت"}
+        >
+          {isRunning ? (
+            <span className="flex items-center gap-1">
+              <span className="block h-7 w-1.5 rounded-full bg-white md:h-8" />
+              <span className="block h-7 w-1.5 rounded-full bg-white md:h-8" />
+            </span>
+          ) : (
+            <span className="mr-[-2px] block h-0 w-0 border-y-[10px] border-y-transparent border-r-0 border-l-[16px] border-l-white md:border-y-[12px] md:border-l-[18px]" />
+          )}
+        </button>
+
+        <div className="min-w-[92px] text-center text-2xl font-black tracking-[0.08em] text-white md:min-w-[120px] md:text-4xl">
+          {timeLabel}
         </div>
 
         <button
           type="button"
-          onClick={onDecrease}
-          className={`flex items-center justify-center rounded-full border font-black transition ${theme.action} ${
-            compact ? "h-9 w-9 text-xl" : "h-11 w-11 text-2xl"
-          }`}
+          onClick={onReset}
+          className="flex h-9 w-9 items-center justify-center rounded-full text-white transition hover:bg-white/10 md:h-11 md:w-11"
+          aria-label="إعادة ضبط المؤقت"
         >
-          −
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            className="h-7 w-7 md:h-8 md:w-8"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3 12a9 9 0 1 0 3-6.708"
+            />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M3 4v5h5" />
+          </svg>
         </button>
-      </div>
-
-      <div
-        className={`mt-2 text-center text-slate-400 ${
-          compact ? "text-xs" : "text-sm"
-        }`}
-      >
-        نقطة
       </div>
     </div>
   );
@@ -1078,19 +1127,29 @@ function RichHtmlContent({ html }: { html: string }) {
 
         .rich-html-content {
           width: 100%;
-          max-width: 980px;
+          max-width: min(100%, 1100px);
           margin: 0 auto;
           text-align: center;
           color: white;
-          font-size: 1.25rem;
-          line-height: 1.9;
+          font-size: 1.15rem;
+          line-height: 1.85;
+          overflow-wrap: anywhere;
+          word-break: break-word;
         }
 
         @media (min-width: 768px) {
           .rich-html-content {
-            font-size: 2rem;
+            font-size: 1.9rem;
             line-height: 1.8;
           }
+        }
+
+        .rich-html-content > *:first-child {
+          margin-top: 0;
+        }
+
+        .rich-html-content > *:last-child {
+          margin-bottom: 0;
         }
 
         .rich-html-content h1,
@@ -1099,32 +1158,19 @@ function RichHtmlContent({ html }: { html: string }) {
           font-weight: 900;
           margin: 0 0 16px;
           text-align: center;
+          line-height: 1.35;
         }
 
         .rich-html-content h1 {
-          font-size: 2rem;
+          font-size: clamp(1.7rem, 3vw, 3rem);
         }
 
         .rich-html-content h2 {
-          font-size: 1.8rem;
+          font-size: clamp(1.45rem, 2.5vw, 2.4rem);
         }
 
         .rich-html-content h3 {
-          font-size: 1.5rem;
-        }
-
-        @media (min-width: 768px) {
-          .rich-html-content h1 {
-            font-size: 3rem;
-          }
-
-          .rich-html-content h2 {
-            font-size: 2.4rem;
-          }
-
-          .rich-html-content h3 {
-            font-size: 2rem;
-          }
+          font-size: clamp(1.2rem, 2vw, 2rem);
         }
 
         .rich-html-content p,
@@ -1143,6 +1189,7 @@ function RichHtmlContent({ html }: { html: string }) {
           padding: 0 24px;
           display: inline-block;
           text-align: right;
+          max-width: 100%;
         }
 
         .rich-html-content ul {
@@ -1153,50 +1200,77 @@ function RichHtmlContent({ html }: { html: string }) {
           list-style: decimal;
         }
 
-        .rich-html-content img {
-          max-width: 100%;
-          max-height: 420px;
-          height: auto;
-          display: block;
-          margin: 22px auto;
+        .rich-html-content figure {
+          margin: 20px auto;
+          width: 100%;
+          max-width: min(100%, 1000px);
+        }
+
+        .rich-html-content img,
+        .rich-html-content video,
+        .rich-html-content iframe {
+          display: block !important;
+          margin: 20px auto !important;
+          width: auto !important;
+          max-width: min(100%, 1000px) !important;
           border-radius: 20px;
-          object-fit: contain;
+        }
+
+        .rich-html-content img {
+          height: auto !important;
+          max-height: min(52vh, 540px) !important;
+          object-fit: contain !important;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
         }
 
         .rich-html-content video {
-          width: 100%;
-          max-width: 900px;
-          max-height: 420px;
-          display: block;
-          margin: 22px auto;
-          border-radius: 20px;
+          width: min(100%, 1000px) !important;
+          max-height: min(52vh, 540px) !important;
+          height: auto !important;
+          background: #000;
+          object-fit: contain !important;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
         }
 
         .rich-html-content iframe {
-          width: 100%;
-          min-height: 320px;
-          border: 0;
-          border-radius: 20px;
-          margin: 22px auto;
-          display: block;
+          width: min(100%, 1000px) !important;
+          aspect-ratio: 16 / 9;
+          min-height: 220px;
+          max-height: min(56vh, 560px);
+          height: auto !important;
+          border: 0 !important;
+          background: #000;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
         }
 
         .rich-html-content .video-wrap {
           position: relative;
           width: 100%;
-          max-width: 900px;
-          padding-top: 56.25%;
+          max-width: min(100%, 1000px);
+          aspect-ratio: 16 / 9;
           overflow: hidden;
           border-radius: 20px;
-          margin: 22px auto;
+          margin: 20px auto;
+          box-shadow: 0 12px 32px rgba(0, 0, 0, 0.28);
         }
 
-        .rich-html-content .video-wrap iframe {
+        .rich-html-content .video-wrap iframe,
+        .rich-html-content .video-wrap video {
           position: absolute;
           inset: 0;
-          width: 100%;
-          height: 100%;
-          margin: 0;
+          width: 100% !important;
+          height: 100% !important;
+          max-height: none !important;
+          margin: 0 !important;
+          border-radius: 0;
+          box-shadow: none;
+        }
+
+        .rich-html-content table {
+          max-width: 100%;
+          margin: 20px auto;
+          overflow-x: auto;
+          display: block;
         }
 
         .rich-html-content a {
