@@ -32,112 +32,104 @@ type FaqItemType = {
 
 const features: Feature[] = [
   {
-    title: "واجهة أنيقة وسهلة",
+    title: "تشغيل سريع",
     description:
-      "صفحة لعب واضحة وسريعة تساعدك تبدأ الجولة وتتنقل بين الأسئلة بدون تعقيد.",
+      "ابدأ اللعبة خلال دقائق بواجهة واضحة تساعدك على تنظيم الجولة بدون تعقيد.",
   },
   {
-    title: "مناسبة للفعاليات والمدارس",
+    title: "إدارة مرنة",
     description:
-      "استخدمها في المسابقات، الأنشطة المدرسية، اللقاءات العائلية، أو التحديات الجماعية.",
+      "نظّم الفئات والأسئلة والنقاط بطريقة مرتبة تناسب مختلف أنواع المسابقات.",
   },
   {
-    title: "إدارة مرنة للأسئلة",
+    title: "تجربة تفاعلية",
     description:
-      "رتب الأقسام والفئات والأسئلة بطريقة منظمة حتى تكون تجربة اللعب أكثر احترافية.",
+      "واجهة مهيأة للمنافسات بين فريقين بأسلوب جذاب وسهل المتابعة أثناء اللعب.",
   },
   {
-    title: "حفظ التقدم والعودة لاحقًا",
+    title: "حفظ التقدم",
     description:
-      "يمكن للمستخدمين العودة للجولات غير المكتملة وإكمال اللعب من نفس المكان بسهولة.",
+      "يمكن متابعة الجولات غير المكتملة لاحقًا دون فقدان خطوات اللعب السابقة.",
   },
 ];
 
 const steps: Step[] = [
   {
     number: "01",
-    title: "جهّز اللعبة",
-    description:
-      "اختر اسم اللعبة وأدخل اسمَي الفريقين حتى تكون الجولة جاهزة للبدء خلال لحظات.",
+    title: "أنشئ اللعبة",
+    description: "اختر اسم اللعبة وأدخل أسماء الفرق لتجهيز الجولة بسرعة.",
   },
   {
     number: "02",
-    title: "ابدأ التحدي",
-    description:
-      "انتقل بين الفئات والأسئلة بطريقة مرتبة وواضحة مع عرض مناسب للنقاط وسير اللعب.",
+    title: "ابدأ المنافسة",
+    description: "انتقل بين الفئات والأسئلة بسهولة مع عرض واضح للنقاط.",
   },
   {
     number: "03",
-    title: "أكمل في أي وقت",
-    description:
-      "لو توقفت الجلسة، يمكن الرجوع إليها لاحقًا ومتابعتها دون فقدان التقدم السابق.",
+    title: "تابع لاحقًا",
+    description: "احتفظ بتقدمك وارجع للجولات غير المكتملة في أي وقت.",
   },
 ];
 
 const audiences: Audience[] = [
   {
     title: "للمدارس",
-    description:
-      "تنظيم مسابقات معرفية سريعة وجذابة داخل الصفوف والفعاليات التعليمية.",
+    description: "خيار مناسب للمسابقات الصفية والأنشطة التعليمية والفعاليات المدرسية.",
   },
   {
     title: "للفعاليات",
-    description:
-      "إضافة فقرة تفاعلية ممتعة للمعارض، الملتقيات، والبرامج الجماهيرية.",
+    description: "أضف فقرة تفاعلية ممتعة للمعارض، اللقاءات، والمناسبات الجماهيرية.",
+  },
+  {
+    title: "للفرق والشركات",
+    description: "مناسب للتحديات الجماعية، الأنشطة الداخلية، والمسابقات الترفيهية.",
   },
   {
     title: "للمناسبات الخاصة",
-    description:
-      "تحويل الجلسات العائلية واللقاءات الخاصة إلى منافسات ممتعة وسهلة الإدارة.",
-  },
-  {
-    title: "للفرق والمنظمين",
-    description:
-      "تشغيل اللعبة بسرعة مع واجهة منظمة تناسب من يريد تجربة احترافية بلا تعقيد.",
+    description: "حوّل الجلسات العائلية واللقاءات الخاصة إلى منافسات ممتعة ومنظمة.",
   },
 ];
 
 const faqItems: FaqItemType[] = [
   {
-    question: "كيف يمكنني إنشاء لعبة في سين جيم؟",
+    question: "كيف أبدأ لعبة جديدة في SeenJeem؟",
     answer:
-      "بعد تسجيل الدخول، يمكنك بدء لعبة جديدة من صفحة البدء، ثم إدخال اسم اللعبة واسمَي الفريقين والانتقال مباشرة إلى لوحة اللعب.",
+      "بعد تسجيل الدخول، يمكنك بدء لعبة جديدة مباشرة من صفحة البدء ثم إدخال اسم اللعبة وأسماء الفرق والانتقال إلى لوحة اللعب.",
   },
   {
-    question: "هل يمكن تجربة اللعبة قبل الشراء؟",
+    question: "هل يمكنني الرجوع للعبة غير المكتملة لاحقًا؟",
     answer:
-      "يمكن عرض الصفحة الرئيسية والتعرف على آلية المنصة بسهولة، أما بدء الألعاب فيكون بحسب صلاحيات الحساب والباقات المتاحة.",
+      "نعم، يمكن متابعة الجولات غير المكتملة لاحقًا من الحساب ما دامت لم تُنهَ أو تُحذف.",
   },
   {
-    question: "هل تتكرر الأسئلة في حال اختيار فئات تم اختيارها مسبقًا؟",
+    question: "هل المنصة مناسبة للمدارس والفعاليات؟",
     answer:
-      "ذلك يعتمد على إعدادات اللعبة وبنية بنك الأسئلة المستخدم، ويمكن تنظيم الفئات بحيث تكون التجربة أوضح وأكثر تنوعًا.",
+      "نعم، تم تصميم المنصة لتناسب المسابقات المدرسية والفعاليات العامة واللقاءات الخاصة بأسلوب واضح ومرن.",
   },
   {
-    question: "في حال إيقاف اللعبة والرغبة في تكملتها في وقت لاحق، هل يمكن الرجوع لها؟",
+    question: "هل يمكن استخدام اللعبة بين فريقين؟",
     answer:
-      "نعم، الجولات غير المكتملة يمكن متابعتها لاحقًا من الحساب طالما لم يتم إنهاؤها أو حذفها.",
+      "نعم، تعتمد المنصة على تجربة تنافسية واضحة بين فريقين مع عرض مناسب للنقاط وسير اللعب.",
   },
   {
-    question: "في حال إجابة نصف السؤال، هل يمكن أخذ نصف النقاط؟",
+    question: "هل تظهر الفئات والأسئلة بطريقة منظمة؟",
     answer:
-      "آلية احتساب النقاط تعتمد على القواعد التي يعتمدها من يدير اللعبة، ويمكن توضيحها للمشاركين قبل بدء الجولة.",
+      "نعم، يتم عرض الفئات والأسئلة بشكل مرتب ليسهّل على مقدّم اللعبة والفرق متابعة الجولة بسهولة.",
   },
   {
-    question: "في حال تواجد كلمة < سنة > فوق السؤال، ما المقصود بها؟",
+    question: "هل يمكن تخصيص طريقة احتساب النقاط؟",
     answer:
-      "يمكن استخدامها كتوضيح إضافي مرتبط بالسؤال مثل السنة أو الحقبة الزمنية، وذلك ليسهّل فهم السياق المطلوب للإجابة.",
+      "طريقة اعتماد النقاط تعود إلى أسلوب إدارة الجولة، ويمكن تشغيل اللعبة بما يتناسب مع قوانين المسابقة لديك.",
   },
   {
-    question: "ما معنى علامة VAR داخل السؤال؟",
+    question: "هل المنصة مناسبة للشاشات المختلفة؟",
     answer:
-      "يمكن استخدامها كمؤشر بصري أو ملاحظة تنظيمية داخل بنك الأسئلة بحسب أسلوب إعداد اللعبة المعتمد لديك.",
+      "نعم، تم تصميم الواجهة لتعمل بشكل جيد على أجهزة سطح المكتب والهواتف مع الحفاظ على ترتيب واضح قدر الإمكان.",
   },
   {
-    question:
-      "هل يمكنني أخذ سؤال من الفئة التي اختارها الفريق المنافس، أو أخذ أكثر من سؤال من نفس الفئة؟",
+    question: "هل أحتاج خبرة تقنية لاستخدام المنصة؟",
     answer:
-      "هذا يعود إلى قواعد الجولة التي تعتمدها الجهة المنظمة، ويمكن ضبط أسلوب اللعب بما يناسب نوع المنافسة والجمهور.",
+      "لا، الواجهة مبسطة وسهلة الاستخدام، ويمكن البدء بها بسرعة دون الحاجة إلى خبرة تقنية متقدمة.",
   },
 ];
 
@@ -199,104 +191,107 @@ export default function HomePage() {
 
   return (
     <main dir="rtl" className="min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 pb-16 pt-8 sm:px-6 lg:gap-10 lg:px-8 lg:pb-24 lg:pt-10">
-        <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-5 py-8 shadow-2xl shadow-slate-950/40 sm:px-8 sm:py-10 lg:px-12 lg:py-14">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 px-3 pb-10 pt-4 sm:gap-8 sm:px-6 sm:pb-16 sm:pt-8 lg:gap-10 lg:px-8 lg:pb-24 lg:pt-10">
+        <section className="relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-3 py-4 shadow-2xl shadow-slate-950/40 sm:rounded-[2rem] sm:px-8 sm:py-10 lg:px-12 lg:py-14">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.18),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.16),transparent_30%)]" />
           <div className="absolute -right-16 top-10 h-36 w-36 rounded-full bg-cyan-400/10 blur-3xl" />
           <div className="absolute -left-10 bottom-0 h-40 w-40 rounded-full bg-orange-500/10 blur-3xl" />
 
-          <div className="relative grid gap-8 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
-            <div className="flex flex-col gap-6">
-              <div className="flex flex-wrap gap-3 text-sm text-slate-200">
-                <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2">
+          <div className="relative grid grid-cols-[1.02fr_0.98fr] gap-3 sm:gap-8 lg:items-center">
+            <div className="min-w-0 flex flex-col gap-3 sm:gap-6">
+              <div className="flex flex-wrap gap-2 text-[10px] text-slate-200 sm:gap-3 sm:text-sm">
+                <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2.5 py-1.5 sm:px-4 sm:py-2">
                   منصة عربية لألعاب الأسئلة
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2">
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 sm:px-4 sm:py-2">
                   مناسبة للمدارس والفعاليات
                 </span>
               </div>
 
               <div className="max-w-3xl">
-                <p className="text-sm font-medium text-cyan-300 sm:text-base">
-                  منصة عربية متكاملة لألعاب المعلومات
+                <p className="text-[11px] font-medium text-cyan-300 sm:text-base">
+                  مرحبًا بك في SeenJeem
                 </p>
-                <h1 className="mt-3 text-3xl font-black leading-tight text-white sm:text-4xl lg:text-5xl">
-                  أنشئ تجربة أسئلة احترافية تشد انتباه الزائر من أول لحظة
+                <h1 className="mt-2 text-xl font-black leading-tight text-white sm:mt-3 sm:text-4xl lg:text-5xl">
+                  حوّل أي مسابقة إلى تجربة تفاعلية ممتعة وسريعة التنظيم
                 </h1>
-                <p className="mt-4 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-                  صمم جولات تفاعلية بين فريقين، نظّم الفئات والأسئلة بشكل أنيق، وابدأ
-                  اللعب بواجهة واضحة وسريعة تناسب المسابقات، الفعاليات، المدارس،
+                <p className="mt-3 text-xs leading-6 text-slate-300 sm:mt-4 sm:text-lg sm:leading-8">
+                  منصة عربية تساعدك على تشغيل ألعاب الأسئلة بين فريقين بواجهة أنيقة،
+                  تنظيم واضح، وتجربة جاهزة للعرض أمام الجمهور في المدارس والفعاليات
                   والمناسبات الخاصة.
                 </p>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-3">
-                <InfoStat title="واجهة منظمة" value="عرض أوضح" />
-                <InfoStat title="لعب مرن" value="فريقان وتحدي" />
-                <InfoStat title="متابعة لاحقًا" value="بدون فقدان التقدم" />
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                <InfoStat title="تشغيل سريع" value="بدء فوري" />
+                <InfoStat title="تفاعل مباشر" value="فريقان وتحدي" />
+                <InfoStat title="حفظ التقدم" value="متابعة لاحقًا" />
               </div>
 
-              <div className="rounded-[1.75rem] border border-white/10 bg-white/5 p-4 backdrop-blur sm:p-5">
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-3 backdrop-blur sm:rounded-[1.75rem] sm:p-5">
                 {loading ? (
                   <div className="flex flex-col gap-3">
-                    <p className="text-sm text-slate-300 sm:text-base">
-                      جارٍ تحميل حالتك...
+                    <p className="text-xs text-slate-300 sm:text-base">
+                      جارٍ تحميل بيانات الحساب...
                     </p>
-                    <div className="h-11 w-full rounded-2xl bg-white/10 sm:max-w-xs" />
+                    <div className="h-10 w-full rounded-2xl bg-white/10 sm:h-11 sm:max-w-xs" />
                   </div>
                 ) : isLoggedIn ? (
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-3 sm:gap-4">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-sm text-slate-300">
+                        <p className="text-[11px] text-slate-300 sm:text-sm">
                           أهلاً {username || "بك"}
                         </p>
-                        <p className="mt-1 text-lg font-bold text-white sm:text-xl">
+                        <p className="mt-1 text-base font-bold text-white sm:text-xl">
                           عدد الألعاب المتبقية: {gamesRemaining}
                         </p>
+                        <p className="mt-1 text-[11px] leading-5 text-slate-400 sm:text-sm">
+                          ابدأ جولة جديدة أو تابع ألعابك من صفحة الحساب.
+                        </p>
                       </div>
-                      <span className="w-fit rounded-full border border-emerald-400/30 bg-emerald-400/10 px-3 py-2 text-sm text-emerald-200">
-                        حسابك جاهز للبدء
+                      <span className="w-fit rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2.5 py-1.5 text-[10px] text-emerald-200 sm:px-3 sm:py-2 sm:text-sm">
+                        حسابك جاهز للعب
                       </span>
                     </div>
 
-                    <div className="flex flex-col gap-3 sm:flex-row">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:gap-3">
                       <Link
                         href="/game/start"
-                        className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-cyan-400 px-5 py-3 text-base font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300"
+                        className="inline-flex min-h-10 items-center justify-center rounded-2xl bg-cyan-400 px-3 py-2.5 text-sm font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300 sm:min-h-12 sm:px-5 sm:py-3 sm:text-base"
                       >
                         ابدأ الآن
                       </Link>
                       <Link
                         href="/account"
-                        className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-base font-bold text-white transition hover:bg-white/10"
+                        className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-white/10 sm:min-h-12 sm:px-5 sm:py-3 sm:text-base"
                       >
                         حسابي
                       </Link>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col gap-4">
+                  <div className="flex flex-col gap-3 sm:gap-4">
                     <div>
-                      <p className="text-lg font-bold text-white sm:text-xl">
-                        ابدأ بشكل احترافي من أول زيارة
+                      <p className="text-base font-bold text-white sm:text-xl">
+                        جاهز لبدء أول تحدٍّ؟
                       </p>
-                      <p className="mt-2 text-sm leading-7 text-slate-300 sm:text-base">
-                        أنشئ حسابك وابدأ تجهيز أول لعبة أسئلة عربية بواجهة أجمل وتنظيم
-                        أوضح للمستخدمين والزوار.
+                      <p className="mt-2 text-xs leading-6 text-slate-300 sm:text-base sm:leading-7">
+                        أنشئ حسابك وابدأ في تجهيز ألعاب أسئلة عربية بتجربة أنيقة وسهلة
+                        الاستخدام تناسب مختلف أنواع المسابقات.
                       </p>
                     </div>
 
-                    <div className="flex flex-col gap-3 sm:flex-row">
+                    <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-row sm:gap-3">
                       <Link
-                        href="/signup"
-                        className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-cyan-400 px-5 py-3 text-base font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300"
+                        href="/register"
+                        className="inline-flex min-h-10 items-center justify-center rounded-2xl bg-cyan-400 px-3 py-2.5 text-sm font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300 sm:min-h-12 sm:px-5 sm:py-3 sm:text-base"
                       >
-                        إنشاء حساب جديد
+                        إنشاء حساب
                       </Link>
                       <Link
                         href="/login"
-                        className="inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-base font-bold text-white transition hover:bg-white/10"
+                        className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-white/10 sm:min-h-12 sm:px-5 sm:py-3 sm:text-base"
                       >
                         تسجيل الدخول
                       </Link>
@@ -306,22 +301,24 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="relative">
-              <div className="rounded-[2rem] border border-white/10 bg-white/5 p-4 shadow-xl shadow-slate-950/30 backdrop-blur sm:p-5">
-                <div className="rounded-[1.5rem] border border-white/10 bg-slate-950/80 p-4 sm:p-5">
-                  <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4">
+            <div className="min-w-0">
+              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-2 shadow-xl shadow-slate-950/30 backdrop-blur sm:rounded-[2rem] sm:p-5">
+                <div className="rounded-[1.25rem] border border-white/10 bg-slate-950/80 p-2.5 sm:rounded-[1.5rem] sm:p-5">
+                  <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3 sm:gap-3 sm:pb-4">
                     <div>
-                      <p className="text-sm text-slate-400">معاينة سريعة</p>
-                      <h2 className="mt-1 text-xl font-bold text-white">
+                      <p className="text-[10px] text-slate-400 sm:text-sm">
+                        معاينة سريعة
+                      </p>
+                      <h2 className="mt-1 text-sm font-bold text-white sm:text-2xl">
                         لوحة لعبة جاهزة
                       </h2>
                     </div>
-                    <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1 text-xs font-medium text-cyan-200">
-                      تجربة أوضح للزائر
+                    <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-1 text-[9px] font-medium text-cyan-200 sm:px-3 sm:text-xs">
+                      تجربة منظمة وواضحة
                     </span>
                   </div>
 
-                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-4">
                     <PreviewTeamCard
                       teamName="الفريق الأول"
                       score="200"
@@ -334,21 +331,20 @@ export default function HomePage() {
                     />
                   </div>
 
-                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div className="mt-3 grid grid-cols-2 gap-2 sm:mt-4 sm:gap-3">
                     <PreviewCategory label="رياضة" points="100 • 200 • 300" />
                     <PreviewCategory label="تاريخ" points="100 • 200 • 300" />
                     <PreviewCategory label="جغرافيا" points="100 • 200 • 300" />
-                    <PreviewCategory
-                      label="ثقافة عامة"
-                      points="100 • 200 • 300"
-                    />
+                    <PreviewCategory label="ثقافة عامة" points="100 • 200 • 300" />
                   </div>
 
-                  <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                    <p className="text-sm text-slate-400">لماذا هذا مهم؟</p>
-                    <p className="mt-2 text-sm leading-7 text-slate-300">
-                      بدل أن تبدو الصفحة الرئيسية فارغة، يحصل الزائر على انطباع فوري عن
-                      شكل المنصة وقيمتها وطريقة استخدامها.
+                  <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.03] p-3 sm:mt-4 sm:p-4">
+                    <p className="text-[10px] text-slate-400 sm:text-sm">
+                      تجربة مناسبة للعرض
+                    </p>
+                    <p className="mt-2 text-[11px] leading-5 text-slate-300 sm:text-sm sm:leading-7">
+                      واجهة مرتبة تساعد على تقديم اللعبة بشكل جذاب وواضح سواء داخل
+                      الفصول أو في الفعاليات والمناسبات المختلفة.
                     </p>
                   </div>
                 </div>
@@ -357,7 +353,7 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 md:grid-cols-2 xl:grid-cols-4">
           {features.map((feature) => (
             <FeatureCard
               key={feature.title}
@@ -367,14 +363,14 @@ export default function HomePage() {
           ))}
         </section>
 
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+        <section className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] px-3 py-4 sm:rounded-[2rem] sm:px-8 sm:py-8 lg:px-10 lg:py-10">
           <SectionHeader
             eyebrow="كيف تعمل المنصة"
-            title="3 خطوات واضحة للبدء بسرعة"
-            description="رتب التجربة للزائر والمستخدم بطريقة بسيطة: من إنشاء اللعبة إلى بدء المنافسة ثم متابعة التقدم لاحقًا."
+            title="ثلاث خطوات بسيطة للانطلاق"
+            description="ابدأ اللعبة بسرعة، انتقل بين الأسئلة بسهولة، واحتفظ بتقدمك لتكمل الجولة في الوقت المناسب."
           />
 
-          <div className="mt-8 grid gap-4 lg:grid-cols-3">
+          <div className="mt-4 grid grid-cols-3 gap-3 sm:mt-8 sm:gap-4">
             {steps.map((step) => (
               <StepCard
                 key={step.number}
@@ -386,14 +382,14 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.03] px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+        <section className="rounded-[1.75rem] border border-white/10 bg-gradient-to-br from-white/[0.06] to-white/[0.03] px-3 py-4 sm:rounded-[2rem] sm:px-8 sm:py-8 lg:px-10 lg:py-10">
           <SectionHeader
             eyebrow="استخدامات المنصة"
-            title="مناسبة لأكثر من سيناريو"
-            description="سواء كنت تدير منافسة مدرسية أو فعالية جماهيرية أو لقاءً خاصًا، الواجهة مصممة لتكون مرتبة وسهلة الفهم."
+            title="مناسبة لعدة سيناريوهات"
+            description="سواء كنت تدير مسابقة مدرسية أو فعالية جماهيرية أو لقاءً خاصًا، تمنحك SeenJeem تجربة منظمة وسهلة التقديم."
           />
 
-          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4 xl:grid-cols-4">
             {audiences.map((item) => (
               <AudienceCard
                 key={item.title}
@@ -404,14 +400,14 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+        <section className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] px-3 py-4 sm:rounded-[2rem] sm:px-8 sm:py-8 lg:px-10 lg:py-10">
           <SectionHeader
             eyebrow="الأسئلة الشائعة"
-            title="قسم مرتب وواضح بدل عرض طويل ومزدحم"
-            description="تم توزيع الأسئلة على شبكة متجاوبة تناسب الهاتف وسطح المكتب، مع فتح الجواب داخل نفس البطاقة بشكل أنيق."
+            title="كل ما تحتاج معرفته قبل البدء"
+            description="إجابات مختصرة وواضحة تساعد الزائر على فهم طبيعة المنصة وطريقة استخدامها بسرعة."
           />
 
-          <div className="mt-8 grid gap-4 lg:grid-cols-2">
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:mt-8 sm:gap-4">
             {faqItems.map((item, index) => (
               <FaqCard
                 key={item.question}
@@ -427,49 +423,51 @@ export default function HomePage() {
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-cyan-400/20 bg-gradient-to-br from-cyan-400/10 via-slate-900 to-orange-500/10 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+        <section className="rounded-[1.75rem] border border-cyan-400/20 bg-gradient-to-br from-cyan-400/10 via-slate-900 to-orange-500/10 px-3 py-4 sm:rounded-[2rem] sm:px-8 sm:py-8 lg:px-10 lg:py-10">
+          <div className="flex flex-col gap-4 sm:gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="max-w-2xl">
-              <p className="text-sm font-medium text-cyan-300">ابدأ الآن</p>
-              <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl">
-                واجهة رئيسية أكثر قوة وتنظيمًا من أول زيارة
+              <p className="text-[11px] font-medium text-cyan-300 sm:text-sm">
+                ابدأ الآن
+              </p>
+              <h2 className="mt-2 text-xl font-black text-white sm:text-3xl">
+                اجعل المسابقات أكثر تفاعلًا وتنظيمًا
               </h2>
-              <p className="mt-3 text-base leading-8 text-slate-300">
-                هذا التصميم يحافظ على منطق الصفحة الحالي للمستخدم والزائر، لكنه يعرض
-                المحتوى بطريقة احترافية أكثر ويملأ الصفحة بعناصر مفيدة وواضحة.
+              <p className="mt-3 text-xs leading-6 text-slate-300 sm:text-base sm:leading-8">
+                ابدأ لعبة جديدة خلال لحظات واستمتع بتجربة عربية أنيقة مناسبة للعرض،
+                الإدارة، والمتابعة بسهولة.
               </p>
             </div>
 
             {loading ? (
-              <div className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm text-slate-300">
-                جارٍ تحميل حالتك...
+              <div className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2.5 text-xs text-slate-300 sm:min-h-12 sm:px-5 sm:py-3 sm:text-sm">
+                جارٍ تحميل بيانات الحساب...
               </div>
             ) : isLoggedIn ? (
-              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+              <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:gap-3">
                 <Link
                   href="/game/start"
-                  className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-cyan-400 px-5 py-3 text-base font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300"
+                  className="inline-flex min-h-10 items-center justify-center rounded-2xl bg-cyan-400 px-3 py-2.5 text-sm font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300 sm:min-h-12 sm:px-5 sm:py-3 sm:text-base"
                 >
                   ابدأ لعبة جديدة
                 </Link>
                 <Link
                   href="/account"
-                  className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-base font-bold text-white transition hover:bg-white/10"
+                  className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-white/10 sm:min-h-12 sm:px-5 sm:py-3 sm:text-base"
                 >
                   انتقل إلى حسابي
                 </Link>
               </div>
             ) : (
-              <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+              <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:gap-3">
                 <Link
-                  href="/signup"
-                  className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-cyan-400 px-5 py-3 text-base font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300"
+                  href="/register"
+                  className="inline-flex min-h-10 items-center justify-center rounded-2xl bg-cyan-400 px-3 py-2.5 text-sm font-bold text-slate-950 transition hover:-translate-y-0.5 hover:bg-cyan-300 sm:min-h-12 sm:px-5 sm:py-3 sm:text-base"
                 >
-                  أنشئ حسابك الآن
+                  أنشئ حسابك
                 </Link>
                 <Link
                   href="/login"
-                  className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-base font-bold text-white transition hover:bg-white/10"
+                  className="inline-flex min-h-10 items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-white/10 sm:min-h-12 sm:px-5 sm:py-3 sm:text-base"
                 >
                   تسجيل الدخول
                 </Link>
@@ -493,20 +491,26 @@ function SectionHeader({
 }) {
   return (
     <div className="max-w-3xl">
-      <p className="text-sm font-medium text-cyan-300">{eyebrow}</p>
-      <h2 className="mt-2 text-2xl font-black text-white sm:text-3xl">
+      <p className="text-[11px] font-medium text-cyan-300 sm:text-sm">
+        {eyebrow}
+      </p>
+      <h2 className="mt-2 text-xl font-black text-white sm:text-3xl">
         {title}
       </h2>
-      <p className="mt-3 text-base leading-8 text-slate-300">{description}</p>
+      <p className="mt-3 text-xs leading-6 text-slate-300 sm:text-base sm:leading-8">
+        {description}
+      </p>
     </div>
   );
 }
 
 function InfoStat({ title, value }: { title: string; value: string }) {
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4 backdrop-blur">
-      <p className="text-sm text-slate-400">{title}</p>
-      <p className="mt-2 text-lg font-bold text-white">{value}</p>
+    <div className="rounded-[1.2rem] border border-white/10 bg-white/5 px-2.5 py-3 backdrop-blur sm:rounded-[1.5rem] sm:px-4 sm:py-4">
+      <p className="text-[10px] text-slate-400 sm:text-sm">{title}</p>
+      <p className="mt-1.5 text-xs font-bold text-white sm:mt-2 sm:text-lg">
+        {value}
+      </p>
     </div>
   );
 }
@@ -519,12 +523,14 @@ function FeatureCard({
   description: string;
 }) {
   return (
-    <div className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-5 transition hover:-translate-y-1 hover:bg-white/[0.06]">
-      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400/15 text-cyan-300">
-        <span className="text-lg font-bold">✓</span>
+    <div className="rounded-[1.4rem] border border-white/10 bg-white/[0.04] p-3 transition hover:-translate-y-1 hover:bg-white/[0.06] sm:rounded-[1.75rem] sm:p-5">
+      <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-cyan-400/15 text-cyan-300 sm:h-11 sm:w-11">
+        <span className="text-sm font-bold sm:text-lg">✓</span>
       </div>
-      <h3 className="mt-4 text-xl font-bold text-white">{title}</h3>
-      <p className="mt-3 text-sm leading-7 text-slate-300 sm:text-base">
+      <h3 className="mt-3 text-sm font-bold text-white sm:mt-4 sm:text-xl">
+        {title}
+      </h3>
+      <p className="mt-2 text-[11px] leading-5 text-slate-300 sm:mt-3 sm:text-base sm:leading-7">
         {description}
       </p>
     </div>
@@ -541,12 +547,14 @@ function StepCard({
   description: string;
 }) {
   return (
-    <div className="rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-5">
-      <div className="inline-flex rounded-full border border-orange-400/30 bg-orange-400/10 px-3 py-1 text-sm font-bold text-orange-200">
+    <div className="rounded-[1.4rem] border border-white/10 bg-slate-950/60 p-3 sm:rounded-[1.75rem] sm:p-5">
+      <div className="inline-flex rounded-full border border-orange-400/30 bg-orange-400/10 px-2.5 py-1 text-[10px] font-bold text-orange-200 sm:px-3 sm:text-sm">
         {number}
       </div>
-      <h3 className="mt-4 text-xl font-bold text-white">{title}</h3>
-      <p className="mt-3 text-sm leading-7 text-slate-300 sm:text-base">
+      <h3 className="mt-3 text-sm font-bold text-white sm:mt-4 sm:text-xl">
+        {title}
+      </h3>
+      <p className="mt-2 text-[11px] leading-5 text-slate-300 sm:mt-3 sm:text-base sm:leading-7">
         {description}
       </p>
     </div>
@@ -561,9 +569,9 @@ function AudienceCard({
   description: string;
 }) {
   return (
-    <div className="rounded-[1.75rem] border border-white/10 bg-slate-950/50 p-5">
-      <h3 className="text-lg font-bold text-white">{title}</h3>
-      <p className="mt-3 text-sm leading-7 text-slate-300 sm:text-base">
+    <div className="rounded-[1.4rem] border border-white/10 bg-slate-950/50 p-3 sm:rounded-[1.75rem] sm:p-5">
+      <h3 className="text-sm font-bold text-white sm:text-lg">{title}</h3>
+      <p className="mt-2 text-[11px] leading-5 text-slate-300 sm:mt-3 sm:text-base sm:leading-7">
         {description}
       </p>
     </div>
@@ -580,15 +588,17 @@ function PreviewTeamCard({
   hint: string;
 }) {
   return (
-    <div className="rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4">
-      <p className="text-sm text-slate-400">{teamName}</p>
-      <div className="mt-3 flex items-end justify-between gap-3">
-        <p className="text-3xl font-black text-white">{score}</p>
-        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">
+    <div className="rounded-[1.15rem] border border-white/10 bg-white/[0.03] p-2.5 sm:rounded-[1.5rem] sm:p-4">
+      <p className="text-[10px] text-slate-400 sm:text-sm">{teamName}</p>
+      <div className="mt-2 flex items-end justify-between gap-2 sm:mt-3 sm:gap-3">
+        <p className="text-xl font-black text-white sm:text-3xl">{score}</p>
+        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[9px] text-slate-300 sm:px-3 sm:text-xs">
           نقاط
         </span>
       </div>
-      <p className="mt-3 text-sm text-slate-300">{hint}</p>
+      <p className="mt-2 text-[10px] leading-5 text-slate-300 sm:mt-3 sm:text-sm">
+        {hint}
+      </p>
     </div>
   );
 }
@@ -601,9 +611,13 @@ function PreviewCategory({
   points: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <p className="text-sm font-semibold text-white">{label}</p>
-      <p className="mt-2 text-sm text-slate-400">{points}</p>
+    <div className="rounded-[1rem] border border-white/10 bg-white/[0.03] p-2.5 sm:rounded-2xl sm:p-4">
+      <p className="text-[10px] font-semibold text-white sm:text-sm">
+        {label}
+      </p>
+      <p className="mt-1.5 text-[10px] text-slate-400 sm:mt-2 sm:text-sm">
+        {points}
+      </p>
     </div>
   );
 }
@@ -618,17 +632,18 @@ function FaqCard({
   onToggle: () => void;
 }) {
   return (
-    <div className="rounded-[1.75rem] border border-white/10 bg-slate-950/60 p-4 sm:p-5">
+    <div className="rounded-[1.4rem] border border-white/10 bg-slate-950/60 p-3 sm:rounded-[1.75rem] sm:p-5">
       <button
         type="button"
         onClick={onToggle}
-        className="flex w-full items-start justify-between gap-4 text-right"
+        aria-expanded={isOpen}
+        className="flex w-full items-start justify-between gap-2 text-right sm:gap-4"
       >
-        <span className="text-base font-bold leading-8 text-white sm:text-lg">
+        <span className="text-xs font-bold leading-6 text-white sm:text-lg sm:leading-8">
           {item.question}
         </span>
         <span
-          className={`mt-1 inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border transition ${
+          className={`mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border transition sm:mt-1 sm:h-10 sm:w-10 sm:rounded-2xl ${
             isOpen
               ? "border-cyan-400/30 bg-cyan-400/10 text-cyan-200"
               : "border-white/10 bg-white/5 text-slate-300"
@@ -641,7 +656,7 @@ function FaqCard({
             fill="none"
             stroke="currentColor"
             strokeWidth="2"
-            className={`h-5 w-5 transition-transform ${
+            className={`h-4 w-4 transition-transform sm:h-5 sm:w-5 ${
               isOpen ? "rotate-90" : "rotate-0"
             }`}
           >
@@ -655,8 +670,8 @@ function FaqCard({
       </button>
 
       {isOpen ? (
-        <div className="mt-4 border-t border-white/10 pt-4">
-          <p className="text-sm leading-8 text-slate-300 sm:text-base">
+        <div className="mt-3 border-t border-white/10 pt-3 sm:mt-4 sm:pt-4">
+          <p className="text-[11px] leading-6 text-slate-300 sm:text-base sm:leading-8">
             {item.answer}
           </p>
         </div>
