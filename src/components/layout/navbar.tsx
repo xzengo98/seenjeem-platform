@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Profile = {
@@ -21,6 +21,7 @@ type AuthState = {
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
 
   const [authState, setAuthState] = useState<AuthState>({
@@ -31,46 +32,40 @@ export default function Navbar() {
     username: null,
   });
 
-  useEffect(() => {
-    let mounted = true;
+  async function loadUser() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    async function loadUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!mounted) return;
-
-      if (!user) {
-        setAuthState({
-          loading: false,
-          isLoggedIn: false,
-          isAdmin: false,
-          gamesRemaining: 0,
-          username: null,
-        });
-        return;
-      }
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("role, games_remaining, username")
-        .eq("id", user.id)
-        .single();
-
-      if (!mounted) return;
-
-      const typedProfile = profile as Profile | null;
-
+    if (!user) {
       setAuthState({
         loading: false,
-        isLoggedIn: true,
-        isAdmin: typedProfile?.role === "admin",
-        gamesRemaining: typedProfile?.games_remaining ?? 0,
-        username: typedProfile?.username ?? null,
+        isLoggedIn: false,
+        isAdmin: false,
+        gamesRemaining: 0,
+        username: null,
       });
+      return;
     }
 
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role, games_remaining, username")
+      .eq("id", user.id)
+      .single();
+
+    const typedProfile = profile as Profile | null;
+
+    setAuthState({
+      loading: false,
+      isLoggedIn: true,
+      isAdmin: typedProfile?.role === "admin",
+      gamesRemaining: typedProfile?.games_remaining ?? 0,
+      username: typedProfile?.username ?? null,
+    });
+  }
+
+  useEffect(() => {
     loadUser();
 
     const {
@@ -80,11 +75,18 @@ export default function Navbar() {
       router.refresh();
     });
 
+    const onFocus = () => loadUser();
+    window.addEventListener("focus", onFocus);
+
     return () => {
-      mounted = false;
       subscription.unsubscribe();
+      window.removeEventListener("focus", onFocus);
     };
   }, [router, supabase]);
+
+  useEffect(() => {
+    loadUser();
+  }, [pathname]);
 
   async function handleLogout() {
     await supabase.auth.signOut();

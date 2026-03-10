@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 type Category = {
   id: string;
@@ -24,6 +25,8 @@ type QuestionRow = {
 
 type Props = {
   sessionId: string;
+  userId: string;
+  initialBoardState: Record<string, unknown>;
   gameName: string;
   teamOne: string;
   teamTwo: string;
@@ -70,6 +73,8 @@ const categoryVisuals: Record<string, CategoryVisual> = {
 
 export default function GameBoardClient({
   sessionId,
+  userId,
+  initialBoardState,
   gameName,
   teamOne,
   teamTwo,
@@ -77,15 +82,27 @@ export default function GameBoardClient({
   questions,
 }: Props) {
   const router = useRouter();
+  const supabase = useMemo(() => getSupabaseBrowserClient(), []);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const [teamOneScore, setTeamOneScore] = useState(0);
-  const [teamTwoScore, setTeamTwoScore] = useState(0);
+  const [teamOneScore, setTeamOneScore] = useState(
+    Number(initialBoardState?.teamOneScore ?? 0)
+  );
+  const [teamTwoScore, setTeamTwoScore] = useState(
+    Number(initialBoardState?.teamTwoScore ?? 0)
+  );
   const [usedQuestionIds, setUsedQuestionIds] = useState<string[]>(
-    questions.filter((q) => q.is_used).map((q) => q.id)
+    Array.isArray(initialBoardState?.usedQuestionIds)
+      ? (initialBoardState.usedQuestionIds as string[])
+      : questions.filter((q) => q.is_used).map((q) => q.id)
   );
   const [openQuestion, setOpenQuestion] = useState<OpenQuestion | null>(null);
-  const [showAnswer, setShowAnswer] = useState(false);
-  const [showWinnerPicker, setShowWinnerPicker] = useState(false);
+  const [showAnswer, setShowAnswer] = useState(
+    Boolean(initialBoardState?.showAnswer ?? false)
+  );
+  const [showWinnerPicker, setShowWinnerPicker] = useState(
+    Boolean(initialBoardState?.showWinnerPicker ?? false)
+  );
 
   const grouped = useMemo(() => {
     const targetPattern = [200, 200, 400, 400, 600, 600];
@@ -117,6 +134,26 @@ export default function GameBoardClient({
       };
     });
   }, [categories, questions]);
+
+  useEffect(() => {
+    const openQuestionId = initialBoardState?.openQuestionId;
+
+    if (!openQuestionId) return;
+    if (openQuestion) return;
+
+    for (const category of grouped) {
+      for (const slot of category.slots) {
+        if (slot.question?.id === openQuestionId) {
+          setOpenQuestion({
+            ...slot.question,
+            categoryName: category.name,
+            slotIndex: slot.slotIndex,
+          });
+          return;
+        }
+      }
+    }
+  }, [grouped, initialBoardState, openQuestion]);
 
   const playableQuestionIds = useMemo(() => {
     return grouped.flatMap((category) =>
@@ -156,6 +193,45 @@ export default function GameBoardClient({
     playableQuestionIds,
     openQuestion,
     router,
+  ]);
+
+  useEffect(() => {
+    const boardState = {
+      teamOneScore,
+      teamTwoScore,
+      usedQuestionIds,
+      openQuestionId: openQuestion?.id ?? null,
+      showAnswer,
+      showWinnerPicker,
+    };
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(async () => {
+      await supabase.rpc("update_game_board_state", {
+        p_session_id: sessionId,
+        p_user_id: userId,
+        p_board_state: boardState,
+      });
+    }, 500);
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [
+    supabase,
+    sessionId,
+    userId,
+    teamOneScore,
+    teamTwoScore,
+    usedQuestionIds,
+    openQuestion,
+    showAnswer,
+    showWinnerPicker,
   ]);
 
   function openQuestionCard(

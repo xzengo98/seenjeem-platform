@@ -13,6 +13,7 @@ type SessionRow = {
   team_one_name: string;
   team_two_name: string;
   selected_categories: string[] | null;
+  board_state: Record<string, unknown> | null;
   status: string;
 };
 
@@ -59,7 +60,9 @@ export default async function GameBoardPage({
 
   const { data: session, error: sessionError } = await supabase
     .from("game_sessions")
-    .select("id, user_id, game_name, team_one_name, team_two_name, selected_categories, status")
+    .select(
+      "id, user_id, game_name, team_one_name, team_two_name, selected_categories, board_state, status"
+    )
     .eq("id", sessionId)
     .eq("user_id", user.id)
     .single();
@@ -71,7 +74,7 @@ export default async function GameBoardPage({
   const typedSession = session as SessionRow;
 
   if (typedSession.status !== "active") {
-    redirect("/game/result?sessionId=" + typedSession.id);
+    redirect(`/game/result?sessionId=${typedSession.id}`);
   }
 
   const selectedSlugs = Array.isArray(typedSession.selected_categories)
@@ -113,6 +116,8 @@ export default async function GameBoardPage({
   return (
     <GameBoardClient
       sessionId={typedSession.id}
+      userId={user.id}
+      initialBoardState={typedSession.board_state ?? {}}
       gameName={typedSession.game_name}
       teamOne={typedSession.team_one_name}
       teamTwo={typedSession.team_two_name}
