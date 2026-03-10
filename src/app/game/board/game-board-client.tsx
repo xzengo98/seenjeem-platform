@@ -75,8 +75,10 @@ const categoryVisuals: Record<string, CategoryVisual> = {
   },
 };
 
-const MOBILE_BOARD_BASE_WIDTH = 1160;
-const MOBILE_BOARD_BASE_HEIGHT = 560;
+const MOBILE_CATEGORY_WIDTH = 150;
+const MOBILE_SIDEBAR_WIDTH = 170;
+const MOBILE_COLUMN_GAP = 12;
+const MOBILE_BOARD_HEIGHT = 500;
 
 export default function GameBoardClient({
   sessionId,
@@ -91,7 +93,7 @@ export default function GameBoardClient({
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const mobileBoardWrapRef = useRef<HTMLDivElement | null>(null);
+  const mobileWrapRef = useRef<HTMLDivElement | null>(null);
 
   const [teamOneScore, setTeamOneScore] = useState(
     Number(initialBoardState?.teamOneScore ?? 0)
@@ -112,14 +114,12 @@ export default function GameBoardClient({
     Boolean(initialBoardState?.showWinnerPicker ?? false)
   );
   const [mobileScale, setMobileScale] = useState(1);
-  const [mobileBoardHeight, setMobileBoardHeight] = useState(
-    MOBILE_BOARD_BASE_HEIGHT
-  );
+  const [mobileHeight, setMobileHeight] = useState(MOBILE_BOARD_HEIGHT);
 
   const grouped = useMemo(() => {
     const targetPattern = [200, 200, 400, 400, 600, 600];
 
-    return categories.slice(0, 6).map((category) => {
+    return categories.map((category) => {
       const categoryQuestions = questions
         .filter((question) => question.category_id === category.id)
         .sort((a, b) => {
@@ -253,44 +253,50 @@ export default function GameBoardClient({
   ]);
 
   useEffect(() => {
-    function updateMobileScale() {
+    function updateMobileBoardScale() {
       if (window.innerWidth >= 768) return;
 
-      const wrap = mobileBoardWrapRef.current;
-      const containerWidth = wrap?.clientWidth ?? window.innerWidth;
+      const categoriesCount = Math.max(grouped.length, 1);
+      const baseWidth =
+        categoriesCount * MOBILE_CATEGORY_WIDTH +
+        MOBILE_SIDEBAR_WIDTH +
+        (categoriesCount + 1) * MOBILE_COLUMN_GAP +
+        24;
 
-      const viewportHeight = window.innerHeight;
-      const reservedHeight = 170;
-      const availableHeight = Math.max(viewportHeight - reservedHeight, 260);
+      const wrapWidth = mobileWrapRef.current?.clientWidth ?? window.innerWidth;
+      const availableWidth = Math.max(wrapWidth - 4, 200);
 
-      const scaleByWidth = containerWidth / MOBILE_BOARD_BASE_WIDTH;
-      const scaleByHeight = availableHeight / MOBILE_BOARD_BASE_HEIGHT;
+      const viewportHeight =
+        window.visualViewport?.height ?? window.innerHeight ?? 700;
+      const availableHeight = Math.max(viewportHeight - 180, 240);
+
+      const scaleByWidth = availableWidth / baseWidth;
+      const scaleByHeight = availableHeight / MOBILE_BOARD_HEIGHT;
       const nextScale = Math.min(scaleByWidth, scaleByHeight, 1);
 
       setMobileScale(nextScale);
-      setMobileBoardHeight(MOBILE_BOARD_BASE_HEIGHT * nextScale);
+      setMobileHeight(MOBILE_BOARD_HEIGHT * nextScale);
     }
 
-    updateMobileScale();
+    updateMobileBoardScale();
 
-    const resizeObserver =
-      typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(() => updateMobileScale())
-        : null;
+    const resizeHandler = () => updateMobileBoardScale();
 
-    if (mobileBoardWrapRef.current && resizeObserver) {
-      resizeObserver.observe(mobileBoardWrapRef.current);
+    window.addEventListener("resize", resizeHandler);
+    window.addEventListener("orientationchange", resizeHandler);
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (mobileWrapRef.current && typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => updateMobileBoardScale());
+      resizeObserver.observe(mobileWrapRef.current);
     }
-
-    window.addEventListener("resize", updateMobileScale);
-    window.addEventListener("orientationchange", updateMobileScale);
 
     return () => {
-      window.removeEventListener("resize", updateMobileScale);
-      window.removeEventListener("orientationchange", updateMobileScale);
+      window.removeEventListener("resize", resizeHandler);
+      window.removeEventListener("orientationchange", resizeHandler);
       resizeObserver?.disconnect();
     };
-  }, []);
+  }, [grouped.length]);
 
   function openQuestionCard(
     question: QuestionRow,
@@ -353,6 +359,12 @@ export default function GameBoardClient({
       ? "teamTwo"
       : "tie";
 
+  const mobileBoardWidth =
+    Math.max(grouped.length, 1) * MOBILE_CATEGORY_WIDTH +
+    MOBILE_SIDEBAR_WIDTH +
+    (Math.max(grouped.length, 1) + 1) * MOBILE_COLUMN_GAP +
+    24;
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-slate-950 text-white">
       <div className="border-b border-white/10 bg-gradient-to-l from-white/10 via-white/5 to-transparent px-3 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4">
@@ -396,18 +408,17 @@ export default function GameBoardClient({
         </div>
       </div>
 
-      {/* Mobile */}
       <div className="block px-2 py-3 md:hidden">
         <div
-          ref={mobileBoardWrapRef}
+          ref={mobileWrapRef}
           className="mx-auto w-full"
-          style={{ height: mobileBoardHeight }}
+          style={{ height: mobileHeight }}
         >
           <div
             className="mx-auto rounded-[24px] border border-white/10 bg-slate-950/80 p-3"
             style={{
-              width: MOBILE_BOARD_BASE_WIDTH,
-              height: MOBILE_BOARD_BASE_HEIGHT,
+              width: mobileBoardWidth,
+              height: MOBILE_BOARD_HEIGHT,
               transform: `scale(${mobileScale})`,
               transformOrigin: "top center",
             }}
@@ -432,7 +443,6 @@ export default function GameBoardClient({
         </div>
       </div>
 
-      {/* Desktop */}
       <div className="hidden px-4 py-5 md:block md:px-6">
         <div className="mx-auto max-w-[1700px] rounded-[2rem] border border-white/10 bg-slate-950/70 p-5 xl:p-6">
           <BoardContent
@@ -613,21 +623,29 @@ function BoardContent({
   onDecTeamTwo: () => void;
   compact?: boolean;
 }) {
+  const categoryCount = Math.max(grouped.length, 1);
+
+  const sidebarWidth = compact ? 170 : 250;
+  const gap = compact ? 12 : 16;
+  const columns = `repeat(${categoryCount}, minmax(0, 1fr)) ${sidebarWidth}px`;
+
   return (
-    <div className="h-full w-full">
+    <div className="h-full w-full" dir="ltr">
       <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-2">
-        <div className="text-4xl font-black text-cyan-400">SeenJeem</div>
+        <div className={`font-black text-cyan-400 ${compact ? "text-4xl" : "text-5xl"}`}>
+          SeenJeem
+        </div>
         <div className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-1 text-sm font-black text-cyan-300">
           لعبة
         </div>
       </div>
 
       <div
-        className={`grid gap-4 ${
-          compact
-            ? "grid-cols-[repeat(6,1fr)_170px]"
-            : "grid-cols-[repeat(6,minmax(0,1fr))_220px]"
-        }`}
+        className="grid items-start"
+        style={{
+          gridTemplateColumns: columns,
+          gap: `${gap}px`,
+        }}
       >
         {grouped.map((category) => (
           <BoardCategoryColumn
@@ -639,7 +657,7 @@ function BoardContent({
           />
         ))}
 
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3" dir="rtl">
           <SideTeamCard
             compact={compact}
             name={teamOne}
@@ -716,7 +734,7 @@ function BoardCategoryColumn({
   const visual = categoryVisuals[category.slug] ?? categoryVisuals.default;
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2" dir="rtl">
       <div
         className={`overflow-hidden border border-white/10 bg-slate-900/70 ${
           compact ? "rounded-[18px]" : "rounded-[22px]"
@@ -724,7 +742,7 @@ function BoardCategoryColumn({
       >
         <div
           className={`relative bg-gradient-to-br ${visual.gradient} ${
-            compact ? "h-[126px]" : "h-[168px]"
+            compact ? "h-[126px]" : "h-[180px]"
           }`}
         >
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_30%)]" />
@@ -733,7 +751,7 @@ function BoardCategoryColumn({
             {category.image_url ? (
               <div
                 className={`relative ${
-                  compact ? "h-[70px] w-[70px]" : "h-[95px] w-[95px]"
+                  compact ? "h-[70px] w-[70px]" : "h-[110px] w-[110px]"
                 }`}
               >
                 <Image
@@ -744,7 +762,7 @@ function BoardCategoryColumn({
                 />
               </div>
             ) : (
-              <div className={compact ? "text-5xl" : "text-6xl"}>
+              <div className={compact ? "text-5xl" : "text-7xl"}>
                 {visual.emoji}
               </div>
             )}
@@ -757,7 +775,7 @@ function BoardCategoryColumn({
           >
             <div
               className={`line-clamp-2 font-black ${
-                compact ? "text-[18px] leading-6" : "text-[22px] leading-7"
+                compact ? "text-[18px] leading-6" : "text-[24px] leading-8"
               }`}
             >
               {category.name}
@@ -820,7 +838,7 @@ function BoardPointsButton({
       className={`font-black transition ${
         compact
           ? "h-[48px] rounded-[14px] text-[22px]"
-          : "h-[60px] rounded-[18px] text-[26px]"
+          : "h-[64px] rounded-[18px] text-[28px]"
       } ${
         !question
           ? "cursor-not-allowed border border-white/5 bg-slate-900/30 text-slate-700"
@@ -899,7 +917,7 @@ function SideTeamCard({
           type="button"
           onClick={onIncrease}
           className={`flex items-center justify-center rounded-full border font-black transition ${theme.action} ${
-            compact ? "h-9 w-9 text-xl" : "h-10 w-10 text-2xl"
+            compact ? "h-9 w-9 text-xl" : "h-11 w-11 text-2xl"
           }`}
         >
           +
@@ -907,7 +925,7 @@ function SideTeamCard({
 
         <div
           className={`rounded-2xl border border-white/10 bg-slate-900/70 text-center ${
-            compact ? "min-w-[64px] px-3 py-2" : "min-w-[86px] px-4 py-3"
+            compact ? "min-w-[64px] px-3 py-2" : "min-w-[92px] px-5 py-3"
           }`}
         >
           <div className={compact ? "text-4xl font-black" : "text-5xl font-black"}>
@@ -919,7 +937,7 @@ function SideTeamCard({
           type="button"
           onClick={onDecrease}
           className={`flex items-center justify-center rounded-full border font-black transition ${theme.action} ${
-            compact ? "h-9 w-9 text-xl" : "h-10 w-10 text-2xl"
+            compact ? "h-9 w-9 text-xl" : "h-11 w-11 text-2xl"
           }`}
         >
           −
