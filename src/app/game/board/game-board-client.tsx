@@ -75,6 +75,9 @@ const categoryVisuals: Record<string, CategoryVisual> = {
   },
 };
 
+const MOBILE_BOARD_WIDTH = 1320;
+const MOBILE_BOARD_HEIGHT = 470;
+
 export default function GameBoardClient({
   sessionId,
   userId,
@@ -107,6 +110,7 @@ export default function GameBoardClient({
   const [showWinnerPicker, setShowWinnerPicker] = useState(
     Boolean(initialBoardState?.showWinnerPicker ?? false)
   );
+  const [mobileScale, setMobileScale] = useState(1);
 
   const grouped = useMemo(() => {
     const targetPattern = [200, 200, 400, 400, 600, 600];
@@ -134,10 +138,32 @@ export default function GameBoardClient({
 
       return {
         ...category,
-        slots,
+        rows: [
+          [slots[0], slots[1]],
+          [slots[2], slots[3]],
+          [slots[4], slots[5]],
+        ],
       };
     });
   }, [categories, questions]);
+
+  useEffect(() => {
+    function updateScale() {
+      if (window.innerWidth >= 768) {
+        setMobileScale(1);
+        return;
+      }
+
+      const horizontalPadding = 12;
+      const availableWidth = window.innerWidth - horizontalPadding;
+      const nextScale = Math.min(availableWidth / MOBILE_BOARD_WIDTH, 1);
+      setMobileScale(nextScale);
+    }
+
+    updateScale();
+    window.addEventListener("resize", updateScale);
+    return () => window.removeEventListener("resize", updateScale);
+  }, []);
 
   useEffect(() => {
     const openQuestionId = initialBoardState?.openQuestionId;
@@ -146,14 +172,16 @@ export default function GameBoardClient({
     if (openQuestion) return;
 
     for (const category of grouped) {
-      for (const slot of category.slots) {
-        if (slot.question?.id === openQuestionId) {
-          setOpenQuestion({
-            ...slot.question,
-            categoryName: category.name,
-            slotIndex: slot.slotIndex,
-          });
-          return;
+      for (const row of category.rows) {
+        for (const slot of row) {
+          if (slot.question?.id === openQuestionId) {
+            setOpenQuestion({
+              ...slot.question,
+              categoryName: category.name,
+              slotIndex: slot.slotIndex,
+            });
+            return;
+          }
         }
       }
     }
@@ -161,9 +189,11 @@ export default function GameBoardClient({
 
   const playableQuestionIds = useMemo(() => {
     return grouped.flatMap((category) =>
-      category.slots
-        .map((slot) => slot.question?.id ?? null)
-        .filter((id): id is string => Boolean(id))
+      category.rows.flatMap((row) =>
+        row
+          .map((slot) => slot.question?.id ?? null)
+          .filter((id): id is string => Boolean(id))
+      )
     );
   }, [grouped]);
 
@@ -299,158 +329,105 @@ export default function GameBoardClient({
       ? "teamTwo"
       : "tie";
 
+  const mobileBoardHeight = MOBILE_BOARD_HEIGHT * mobileScale;
+
   return (
     <main className="min-h-screen overflow-x-hidden bg-slate-950 text-white">
       <div className="border-b border-white/10 bg-gradient-to-l from-white/10 via-white/5 to-transparent px-3 py-2 sm:px-4 sm:py-3 md:px-6 md:py-4">
-        <div className="mx-auto max-w-[1800px]">
-          <div className="grid grid-cols-2 items-center gap-2 md:flex md:flex-wrap md:items-center md:justify-between md:gap-4">
-            <div className="order-2 text-right md:order-1">
-              <div className="text-[10px] text-slate-400 sm:text-xs">اسم اللعبة</div>
-              <div className="text-base font-black sm:text-lg md:text-3xl">
-                {gameName}
-              </div>
-            </div>
+        <div className="mx-auto flex max-w-[1500px] items-center justify-between gap-3">
+          <Link
+            href="/game/start"
+            className="rounded-2xl border border-white/10 px-3 py-2 text-[11px] font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white sm:px-4 sm:text-sm md:hidden"
+          >
+            لعبة جديدة
+          </Link>
 
-            <div className="order-1 col-span-2 flex justify-center md:order-2">
-              <div className="rounded-full bg-orange-400 px-4 py-2 text-center text-[11px] font-black text-slate-950 sm:px-6 sm:text-sm md:px-8 md:py-3 md:text-xl">
-                الحكم هو من يحدد الفريق الصحيح
-              </div>
+          <div className="text-center md:text-right">
+            <div className="text-[10px] text-slate-400 sm:text-xs">اسم اللعبة</div>
+            <div className="text-base font-black sm:text-lg md:text-3xl">
+              {gameName}
             </div>
+          </div>
 
-            <div className="order-3 col-span-2 flex justify-start gap-2 md:col-span-1 md:justify-end md:gap-3">
-              <Link
-                href="/game/start"
-                className="rounded-2xl border border-white/10 px-3 py-2 text-[11px] font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white sm:px-4 sm:text-sm md:px-4 md:py-3"
-              >
-                لعبة جديدة
-              </Link>
-              <Link
-                href="/"
-                className="rounded-2xl border border-white/10 px-3 py-2 text-[11px] font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white sm:px-4 sm:text-sm md:px-4 md:py-3"
-              >
-                الخروج
-              </Link>
-            </div>
+          <div className="hidden items-center gap-3 md:flex">
+            <Link
+              href="/game/start"
+              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+            >
+              لعبة جديدة
+            </Link>
+            <Link
+              href="/"
+              className="rounded-2xl border border-white/10 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-white/5 hover:text-white"
+            >
+              الخروج
+            </Link>
+          </div>
+        </div>
+
+        <div className="mx-auto mt-3 flex max-w-[1500px] justify-center">
+          <div className="rounded-full bg-orange-400 px-4 py-2 text-center text-[11px] font-black text-slate-950 sm:px-6 sm:text-sm md:px-8 md:py-3 md:text-xl">
+            الحكم هو من يحدد الفريق الصحيح
           </div>
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1800px] px-2 py-2 sm:px-3 sm:py-3 md:px-6 md:py-5">
-        <div className="mb-2 grid grid-cols-[92px_1fr_92px] gap-2 sm:mb-3 sm:grid-cols-[110px_1fr_110px] sm:gap-3 md:mb-6 md:grid-cols-[220px_1fr_220px] md:gap-5">
-          <TeamCard
-            name={teamOne}
-            score={teamOneScore}
-            accent="orange"
-            onIncrease={increaseTeamOneScore}
-            onDecrease={decreaseTeamOneScore}
-            isLeading={leadingTeam === "teamOne"}
-            isTie={leadingTeam === "tie"}
-          />
-
-          <div className="rounded-[1rem] border border-white/10 bg-white/5 px-2 py-3 text-center sm:rounded-[1.2rem] sm:px-3 sm:py-4 md:rounded-[2rem] md:px-6 md:py-6">
-            <div className="text-[10px] text-slate-400 sm:text-xs md:text-sm">
-              الجولة الحالية
-            </div>
-            <div className="mt-1 line-clamp-1 text-base font-black text-cyan-300 sm:text-xl md:mt-2 md:text-4xl">
-              {gameName}
-            </div>
-
-            <div className="mt-1 min-h-[18px] text-[10px] font-bold sm:text-xs md:mt-3 md:min-h-[24px] md:text-sm">
-              {leadingTeam === "tie" ? (
-                <span className="text-slate-400">لا يوجد متصدر حاليًا</span>
-              ) : (
-                <span className="text-emerald-300">
-                  المتصدر الآن: {leadingTeam === "teamOne" ? teamOne : teamTwo}
-                </span>
-              )}
-            </div>
+      {/* Mobile compact board */}
+      <div className="block px-1 py-2 md:hidden">
+        <div
+          className="mx-auto"
+          style={{
+            height: mobileBoardHeight,
+            width: "100%",
+          }}
+        >
+          <div
+            style={{
+              width: MOBILE_BOARD_WIDTH,
+              height: MOBILE_BOARD_HEIGHT,
+              transform: `scale(${mobileScale})`,
+              transformOrigin: "top center",
+            }}
+            className="mx-auto rounded-[22px] border border-white/10 bg-slate-950/80 p-3"
+          >
+            <CompactBoardLayout
+              gameName={gameName}
+              leadingTeam={leadingTeam}
+              teamOne={teamOne}
+              teamTwo={teamTwo}
+              teamOneScore={teamOneScore}
+              teamTwoScore={teamTwoScore}
+              grouped={grouped}
+              usedQuestionIds={usedQuestionIds}
+              onOpenQuestion={openQuestionCard}
+              onIncTeamOne={increaseTeamOneScore}
+              onDecTeamOne={decreaseTeamOneScore}
+              onIncTeamTwo={increaseTeamTwoScore}
+              onDecTeamTwo={decreaseTeamTwoScore}
+            />
           </div>
-
-          <TeamCard
-            name={teamTwo}
-            score={teamTwoScore}
-            accent="cyan"
-            onIncrease={increaseTeamTwoScore}
-            onDecrease={decreaseTeamTwoScore}
-            isLeading={leadingTeam === "teamTwo"}
-            isTie={leadingTeam === "tie"}
-          />
         </div>
+      </div>
 
-        <div className="grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-2 md:gap-4 xl:grid-cols-3 xl:gap-6">
-          {grouped.map((category) => {
-            const visual = categoryVisuals[category.slug] ?? categoryVisuals.default;
-
-            return (
-              <div
-                key={category.id}
-                className="rounded-[0.95rem] border border-white/10 bg-white/5 p-1.5 shadow-[0_20px_80px_-30px_rgba(0,0,0,0.7)] sm:rounded-[1.1rem] sm:p-2 md:rounded-[2rem] md:p-4"
-              >
-                <div className="grid grid-cols-[38px_1fr_38px] gap-1 sm:grid-cols-[42px_1fr_42px] sm:gap-1.5 md:grid-cols-[72px_1fr_72px] md:gap-3">
-                  <div className="space-y-1 md:space-y-3">
-                    {category.slots
-                      .filter((_, i) => i % 2 === 0)
-                      .map((slot) => (
-                        <PointsButton
-                          key={`${category.id}-left-${slot.slotIndex}`}
-                          slot={slot}
-                          usedQuestionIds={usedQuestionIds}
-                          onOpen={(question) =>
-                            openQuestionCard(question, category.name, slot.slotIndex)
-                          }
-                        />
-                      ))}
-                  </div>
-
-                  <div className="overflow-hidden rounded-[0.95rem] border border-white/10 bg-slate-900/70 sm:rounded-[1.1rem] md:rounded-[1.8rem]">
-                    <div
-                      className={`relative flex h-[104px] flex-col overflow-hidden bg-gradient-to-br sm:h-[118px] md:h-[250px] ${visual.gradient}`}
-                    >
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_30%)]" />
-
-                      <div className="relative flex flex-1 items-center justify-center px-1 md:px-4">
-                        {category.image_url ? (
-                          <div className="relative h-[34px] w-[34px] sm:h-[40px] sm:w-[40px] md:h-[118px] md:w-[118px]">
-                            <Image
-                              src={category.image_url}
-                              alt={category.name}
-                              fill
-                              className="object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,0.35)]"
-                            />
-                          </div>
-                        ) : (
-                          <div className="select-none text-[22px] opacity-90 sm:text-[26px] md:text-[72px]">
-                            {visual.emoji}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="relative border-t border-white/10 bg-slate-950/75 px-2 py-2 text-center md:px-4 md:py-4">
-                        <div className="line-clamp-2 text-[11px] font-black leading-4 sm:text-[12px] sm:leading-4 md:text-2xl md:leading-normal">
-                          {category.name}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1 md:space-y-3">
-                    {category.slots
-                      .filter((_, i) => i % 2 === 1)
-                      .map((slot) => (
-                        <PointsButton
-                          key={`${category.id}-right-${slot.slotIndex}`}
-                          slot={slot}
-                          usedQuestionIds={usedQuestionIds}
-                          onOpen={(question) =>
-                            openQuestionCard(question, category.name, slot.slotIndex)
-                          }
-                        />
-                      ))}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      {/* Desktop board */}
+      <div className="hidden px-4 py-5 md:block md:px-6">
+        <div className="mx-auto max-w-[1600px] rounded-[2rem] border border-white/10 bg-slate-950/70 p-5">
+          <CompactBoardLayout
+            gameName={gameName}
+            leadingTeam={leadingTeam}
+            teamOne={teamOne}
+            teamTwo={teamTwo}
+            teamOneScore={teamOneScore}
+            teamTwoScore={teamTwoScore}
+            grouped={grouped}
+            usedQuestionIds={usedQuestionIds}
+            onOpenQuestion={openQuestionCard}
+            onIncTeamOne={increaseTeamOneScore}
+            onDecTeamOne={decreaseTeamOneScore}
+            onIncTeamTwo={increaseTeamTwoScore}
+            onDecTeamTwo={decreaseTeamTwoScore}
+            desktop
+          />
         </div>
       </div>
 
@@ -567,10 +544,206 @@ export default function GameBoardClient({
   );
 }
 
-function PointsButton({
+function CompactBoardLayout({
+  gameName,
+  leadingTeam,
+  teamOne,
+  teamTwo,
+  teamOneScore,
+  teamTwoScore,
+  grouped,
+  usedQuestionIds,
+  onOpenQuestion,
+  onIncTeamOne,
+  onDecTeamOne,
+  onIncTeamTwo,
+  onDecTeamTwo,
+  desktop = false,
+}: {
+  gameName: string;
+  leadingTeam: "teamOne" | "teamTwo" | "tie";
+  teamOne: string;
+  teamTwo: string;
+  teamOneScore: number;
+  teamTwoScore: number;
+  grouped: Array<{
+    id: string;
+    name: string;
+    slug: string;
+    image_url: string | null;
+    rows: Array<
+      Array<{
+        points: number;
+        question: QuestionRow | null;
+        slotIndex: number;
+      }>
+    >;
+  }>;
+  usedQuestionIds: string[];
+  onOpenQuestion: (
+    question: QuestionRow,
+    categoryName: string,
+    slotIndex: number
+  ) => void;
+  onIncTeamOne: () => void;
+  onDecTeamOne: () => void;
+  onIncTeamTwo: () => void;
+  onDecTeamTwo: () => void;
+  desktop?: boolean;
+}) {
+  return (
+    <div className="h-full w-full">
+      <div className="mb-3 grid grid-cols-[1fr_auto_170px] items-center gap-3 border-b border-white/10 pb-2">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 text-slate-300"
+          >
+            ☰
+          </button>
+        </div>
+
+        <div className="text-center">
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-1 text-sm font-black text-cyan-300">
+            <span>لعبة</span>
+          </div>
+        </div>
+
+        <div className="text-left">
+          <div className="text-3xl font-black text-cyan-400">SeenJeem</div>
+        </div>
+      </div>
+
+      <div
+        className={`grid h-[390px] gap-3 ${
+          desktop
+            ? "grid-cols-[repeat(6,minmax(0,1fr))_170px]"
+            : "grid-cols-[repeat(6,1fr)_170px]"
+        }`}
+      >
+        {grouped.slice(0, 6).map((category) => (
+          <CategoryBoardColumn
+            key={category.id}
+            category={category}
+            usedQuestionIds={usedQuestionIds}
+            onOpenQuestion={onOpenQuestion}
+          />
+        ))}
+
+        <div className="flex h-full flex-col gap-3">
+          <SidebarTeamCard
+            name={teamOne}
+            score={teamOneScore}
+            accent="cyan"
+            isLeading={leadingTeam === "teamOne"}
+            onIncrease={onIncTeamOne}
+            onDecrease={onDecTeamOne}
+          />
+
+          <SidebarTeamCard
+            name={teamTwo}
+            score={teamTwoScore}
+            accent="slate"
+            isLeading={leadingTeam === "teamTwo"}
+            onIncrease={onIncTeamTwo}
+            onDecrease={onDecTeamTwo}
+          />
+
+          <div className="flex min-h-[56px] items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-3 text-center text-sm font-bold text-slate-300">
+            {leadingTeam === "tie"
+              ? "لا يوجد متصدر حاليًا"
+              : `المتصدر الآن: ${
+                  leadingTeam === "teamOne" ? teamOne : teamTwo
+                }`}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CategoryBoardColumn({
+  category,
+  usedQuestionIds,
+  onOpenQuestion,
+}: {
+  category: {
+    id: string;
+    name: string;
+    slug: string;
+    image_url: string | null;
+    rows: Array<
+      Array<{
+        points: number;
+        question: QuestionRow | null;
+        slotIndex: number;
+      }>
+    >;
+  };
+  usedQuestionIds: string[];
+  onOpenQuestion: (
+    question: QuestionRow,
+    categoryName: string,
+    slotIndex: number
+  ) => void;
+}) {
+  const visual = categoryVisuals[category.slug] ?? categoryVisuals.default;
+
+  return (
+    <div className="flex h-full flex-col gap-2">
+      <div className="overflow-hidden rounded-[20px] border border-white/10 bg-slate-900/70">
+        <div
+          className={`relative h-[128px] bg-gradient-to-br ${visual.gradient}`}
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_30%)]" />
+
+          <div className="relative flex h-full items-center justify-center px-3">
+            {category.image_url ? (
+              <div className="relative h-[72px] w-[72px]">
+                <Image
+                  src={category.image_url}
+                  alt={category.name}
+                  fill
+                  className="object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,0.35)]"
+                />
+              </div>
+            ) : (
+              <div className="text-5xl">{visual.emoji}</div>
+            )}
+          </div>
+
+          <div className="absolute inset-x-0 bottom-0 border-t border-white/10 bg-slate-950/80 px-2 py-2 text-center">
+            <div className="line-clamp-2 text-[18px] font-black leading-6">
+              {category.name}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-2">
+        {category.rows.map((row, rowIndex) => (
+          <div key={`${category.id}-row-${rowIndex}`} className="grid grid-cols-2 gap-2">
+            {row.map((slot) => (
+              <CategoryPointButton
+                key={`${category.id}-${slot.slotIndex}`}
+                slot={slot}
+                usedQuestionIds={usedQuestionIds}
+                onOpenQuestion={onOpenQuestion}
+                categoryName={category.name}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CategoryPointButton({
   slot,
   usedQuestionIds,
-  onOpen,
+  onOpenQuestion,
+  categoryName,
 }: {
   slot: {
     points: number;
@@ -578,7 +751,12 @@ function PointsButton({
     slotIndex: number;
   };
   usedQuestionIds: string[];
-  onOpen: (question: QuestionRow) => void;
+  onOpenQuestion: (
+    question: QuestionRow,
+    categoryName: string,
+    slotIndex: number
+  ) => void;
+  categoryName: string;
 }) {
   const question = slot.question;
   const used = question ? usedQuestionIds.includes(question.id) : true;
@@ -587,13 +765,15 @@ function PointsButton({
     <button
       type="button"
       disabled={!question || used}
-      onClick={() => question && onOpen(question)}
-      className={`flex h-[32px] w-full items-center justify-center rounded-[0.85rem] text-[13px] font-black transition sm:h-[36px] sm:rounded-[0.95rem] sm:text-sm md:h-[50px] md:rounded-[1.3rem] md:text-2xl ${
+      onClick={() =>
+        question && onOpenQuestion(question, categoryName, slot.slotIndex)
+      }
+      className={`h-[48px] rounded-[14px] text-[22px] font-black transition ${
         !question
           ? "cursor-not-allowed border border-white/5 bg-slate-900/30 text-slate-700"
           : used
           ? "cursor-not-allowed border border-white/10 bg-slate-900/60 text-slate-500 line-through"
-          : "border border-cyan-400/20 bg-cyan-400/10 text-cyan-300 hover:bg-cyan-400/20"
+          : "border border-white/10 bg-[#151922] text-white hover:border-cyan-400/30 hover:bg-cyan-400/10 hover:text-cyan-300"
       }`}
     >
       {slot.points}
@@ -601,94 +781,78 @@ function PointsButton({
   );
 }
 
-function TeamCard({
+function SidebarTeamCard({
   name,
   score,
   accent,
+  isLeading,
   onIncrease,
   onDecrease,
-  isLeading,
-  isTie,
 }: {
   name: string;
   score: number;
-  accent: "orange" | "cyan";
+  accent: "cyan" | "slate";
+  isLeading: boolean;
   onIncrease: () => void;
   onDecrease: () => void;
-  isLeading: boolean;
-  isTie: boolean;
 }) {
-  const accentClass =
-    accent === "orange"
-      ? "bg-orange-400 text-slate-950"
-      : "bg-cyan-400 text-slate-950";
-
-  const actionClass =
-    accent === "orange"
-      ? "border-orange-400/30 bg-orange-400/10 text-orange-300 hover:bg-orange-400/20"
-      : "border-cyan-400/30 bg-cyan-400/10 text-cyan-300 hover:bg-cyan-400/20";
-
-  const leadingWrapper =
-    isLeading && !isTie
-      ? accent === "orange"
-        ? "border-orange-300/40 bg-orange-400/10 shadow-[0_0_28px_rgba(251,146,60,0.14)]"
-        : "border-cyan-300/40 bg-cyan-400/10 shadow-[0_0_28px_rgba(34,211,238,0.14)]"
-      : "border-white/10 bg-white/5";
-
-  const leadingBadge =
-    isLeading && !isTie
-      ? accent === "orange"
-        ? "bg-orange-400/20 text-orange-200 border-orange-300/30"
-        : "bg-cyan-400/20 text-cyan-200 border-cyan-300/30"
-      : "hidden";
+  const theme =
+    accent === "cyan"
+      ? {
+          badge: "bg-cyan-400 text-slate-950",
+          wrapper: isLeading
+            ? "border-cyan-300/40 bg-cyan-400/10 shadow-[0_0_28px_rgba(34,211,238,0.14)]"
+            : "border-white/10 bg-white/5",
+          action:
+            "border-cyan-400/30 bg-cyan-400/10 text-cyan-300 hover:bg-cyan-400/20",
+        }
+      : {
+          badge: "bg-slate-800 text-white",
+          wrapper: isLeading
+            ? "border-orange-300/30 bg-orange-400/10 shadow-[0_0_28px_rgba(251,146,60,0.12)]"
+            : "border-white/10 bg-white/5",
+          action:
+            "border-orange-400/30 bg-orange-400/10 text-orange-300 hover:bg-orange-400/20",
+        };
 
   return (
-    <div
-      className={`rounded-[1rem] border p-2 text-center transition sm:rounded-[1.15rem] sm:p-3 md:rounded-[2rem] md:p-5 ${leadingWrapper}`}
-    >
-      <div className="mb-1 flex min-h-[18px] items-center justify-center sm:min-h-[20px] md:mb-3 md:min-h-[24px]">
-        <div
-          className={`rounded-full border px-2 py-0.5 text-[8px] font-bold sm:px-3 sm:py-1 sm:text-[10px] ${leadingBadge}`}
-        >
-          متصدر
+    <div className={`rounded-[18px] border p-3 ${theme.wrapper}`}>
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className={`rounded-xl px-3 py-1.5 text-sm font-black ${theme.badge}`}>
+          {name}
         </div>
-      </div>
-
-      <div
-        className={`rounded-xl px-2 py-2 text-[12px] font-black sm:text-sm md:rounded-2xl md:px-4 md:py-3 md:text-xl ${accentClass}`}
-      >
-        <span className="line-clamp-1 block">{name}</span>
-      </div>
-
-      <div className="mt-2 flex items-center justify-center gap-1.5 sm:gap-2 md:mt-5 md:gap-4">
-        <button
-          type="button"
-          onClick={onDecrease}
-          className={`flex h-6 w-6 items-center justify-center rounded-full border text-sm font-black transition sm:h-8 sm:w-8 sm:text-base md:h-12 md:w-12 md:text-2xl ${actionClass}`}
-          aria-label={`تقليل نقاط ${name}`}
-        >
-          −
-        </button>
-
-        <div className="min-w-[42px] rounded-xl border border-white/10 bg-slate-900/70 px-2 py-1.5 sm:min-w-[54px] sm:rounded-2xl sm:px-3 sm:py-2 md:min-w-[110px] md:px-5 md:py-3">
-          <div className="text-2xl font-black sm:text-4xl md:text-5xl">
-            {score}
+        {isLeading ? (
+          <div className="rounded-full border border-amber-300/30 bg-amber-400/10 px-2 py-1 text-[10px] font-bold text-amber-200">
+            متصدر
           </div>
-        </div>
+        ) : (
+          <div className="h-[24px]" />
+        )}
+      </div>
 
+      <div className="flex items-center justify-between gap-2">
         <button
           type="button"
           onClick={onIncrease}
-          className={`flex h-6 w-6 items-center justify-center rounded-full border text-sm font-black transition sm:h-8 sm:w-8 sm:text-base md:h-12 md:w-12 md:text-2xl ${actionClass}`}
-          aria-label={`زيادة نقاط ${name}`}
+          className={`flex h-9 w-9 items-center justify-center rounded-full border text-xl font-black transition ${theme.action}`}
         >
           +
         </button>
+
+        <div className="min-w-[64px] rounded-2xl border border-white/10 bg-slate-900/70 px-3 py-2 text-center">
+          <div className="text-4xl font-black">{score}</div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onDecrease}
+          className={`flex h-9 w-9 items-center justify-center rounded-full border text-xl font-black transition ${theme.action}`}
+        >
+          −
+        </button>
       </div>
 
-      <div className="mt-1 text-[9px] text-slate-400 sm:text-[10px] md:mt-2 md:text-sm">
-        نقطة
-      </div>
+      <div className="mt-2 text-center text-xs text-slate-400">نقطة</div>
     </div>
   );
 }
