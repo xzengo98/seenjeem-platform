@@ -205,11 +205,11 @@ export default function HomePage() {
             <div className="min-w-0 flex flex-col gap-2.5 sm:gap-6">
               <div className="flex flex-wrap gap-1.5 text-[8px] text-slate-200 max-[390px]:text-[7.5px] sm:gap-3 sm:text-sm">
                 <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-2 py-1 leading-none sm:px-4 sm:py-2">
-                  <span className="sm:hidden">منصة عربية</span>
+                  <span className="sm:hidden">منصة عربية للألعاب التفاعلية</span>
                   <span className="hidden sm:inline">منصة عربية للألعاب التفاعلية</span>
                 </span>
                 <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 leading-none sm:px-4 sm:py-2">
-                  <span className="sm:hidden">للمدارس والفعاليات</span>
+                  <span className="sm:hidden">مناسبة للمدارس والفعاليات والتجمعات</span>
                   <span className="hidden sm:inline">
                     مناسبة للمدارس والفعاليات والتجمعات
                   </span>
@@ -226,24 +226,18 @@ export default function HomePage() {
                    لعبة تحدي جماعية
                     <br />
                     تفاعلية و حماسية
-                    <br />
-                    ممتعة وسريعة
                   </span>
                   <span className="hidden sm:block">
-                    لعبة تحدي جماعيةو تفاعلية وحماسية ممتعة وسريعة
+                    لعبة تحدي جماعية و تفاعلية وحماسية
                   </span>
                 </h1>
 
-                <p className="mt-2 text-[10px] leading-5 text-slate-300 max-[390px]:text-[9px] sm:mt-4 sm:text-lg sm:leading-8">
+                <p className="mt-4 text-[9px] leading-5 text-slate-300 max-[390px]:text-[9px] sm:mt-4 sm:text-lg sm:leading-8">
                   <span className="sm:hidden">
-                    منصة عربية تساعدك على تشغيل ألعاب الأسئلة بين فريقين بواجهة
-                    أنيقة، تنظيم واضح، وتجربة جاهزة للعرض أمام الجمهور في المدارس
-                    والفعاليات والمناسبات الخاصة.
+                    منصة عربية تساعدك على مشاركة وقتك للعب لعبة الأسئلة ضد فريق منافس ، تنظيم واضح للاسئلة اسئلة وفئات متعددة جربها الان. 
                   </span>
                   <span className="hidden sm:inline">
-                    منصة عربية تساعدك على تشغيل ألعاب الأسئلة بين فريقين بواجهة
-                    أنيقة، تنظيم واضح، وتجربة جاهزة للعرض أمام الجمهور في المدارس
-                    والفعاليات والمناسبات الخاصة.
+                    منصة عربية تساعدك على مشاركة وقتك للعب لعبة الأسئلة ضد فريق منافس ، تنظيم واضح للاسئلة اسئلة وفئات متعددة جربها الان. 
                   </span>
                 </p>
               </div>
