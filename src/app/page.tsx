@@ -221,8 +221,8 @@ export default function HomePage() {
                   مرحبًا بك في SeenJeem
                 </p>
 
-                <h1 className="mt-1.5 font-black leading-[1.08] text-white sm:mt-3 sm:text-4xl lg:text-5xl">
-                  <span className="block text-[1.28rem] max-[390px]:text-[1.16rem] sm:hidden">
+                <h1 className="mt-1 font-black leading-[1] text-white sm:mt-3 sm:text-4xl lg:text-5xl">
+                  <span className="block text-[1rem] max-[390px]:text-[1rem] sm:hidden">
                    لعبة تحدي جماعية
                     <br />
                     تفاعلية و حماسية
@@ -230,7 +230,7 @@ export default function HomePage() {
                     ممتعة وسريعة
                   </span>
                   <span className="hidden sm:block">
-                    لعبة تحدي جماعية , تفاعلية وحماسية ممتعة وسريعة
+                    لعبة تحدي جماعيةو تفاعلية وحماسية ممتعة وسريعة
                   </span>
                 </h1>
 
@@ -249,8 +249,8 @@ export default function HomePage() {
               </div>
 
               <div className="grid grid-cols-3 gap-1.5 sm:gap-3">
-                <InfoStat title="" value="بدء فوري" />
-                <InfoStat title="" value="فريقان" />
+                <InfoStat title="" value="ابدأ الان" />
+                <InfoStat title="" value="تحدى الفريق" />
                 <InfoStat title="" value="متابعة لاحقًا" />
               </div>
 
