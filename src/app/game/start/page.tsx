@@ -48,6 +48,15 @@ type SessionQuestionInsertRow = {
   slot_index: number;
 };
 
+type CategoryAvailability = {
+  availableGames: number;
+  isSelectable: boolean;
+  mode: "fixed" | "dynamic";
+  easyCount: number;
+  mediumCount: number;
+  hardCount: number;
+};
+
 const REQUIRED_CATEGORY_COUNT = 6;
 
 function shuffleArray<T>(items: T[]) {
@@ -130,6 +139,48 @@ function buildSessionQuestions(params: {
   }
 
   return { error: null, rows };
+}
+
+function buildCategoryAvailability(params: {
+  categories: Category[];
+  questions: QuestionCandidate[];
+  usedQuestionIds: Set<string>;
+  mode: "fixed" | "dynamic";
+}) {
+  const { categories, questions, usedQuestionIds, mode } = params;
+  const availabilityMap: Record<string, CategoryAvailability> = {};
+
+  for (const category of categories) {
+    const categoryQuestions = questions.filter(
+      (question) => question.category_id === category.id
+    );
+
+    const filtered =
+      mode === "dynamic"
+        ? categoryQuestions.filter((question) => !usedQuestionIds.has(question.id))
+        : categoryQuestions;
+
+    const easyCount = filtered.filter((question) => question.points === 200).length;
+    const mediumCount = filtered.filter((question) => question.points === 400).length;
+    const hardCount = filtered.filter((question) => question.points === 600).length;
+
+    const availableGames = Math.min(
+      Math.floor(easyCount / 2),
+      Math.floor(mediumCount / 2),
+      Math.floor(hardCount / 2)
+    );
+
+    availabilityMap[category.id] = {
+      availableGames,
+      isSelectable: mode === "fixed" ? availableGames >= 1 : availableGames > 0,
+      mode,
+      easyCount,
+      mediumCount,
+      hardCount,
+    };
+  }
+
+  return availabilityMap;
 }
 
 export default async function GameStartPage({
@@ -226,6 +277,44 @@ export default async function GameStartPage({
   const categories: Category[] = Array.isArray(categoriesData)
     ? (categoriesData as Category[])
     : [];
+
+  const selectionMode: "fixed" | "dynamic" =
+    profile.role === "admin" ||
+    profile.account_tier === "premium" ||
+    (profile.games_remaining ?? 0) >= 2
+      ? "dynamic"
+      : "fixed";
+
+  const { data: allQuestionsData } = await supabase
+    .from("questions")
+    .select("id, category_id, points, created_at")
+    .in(
+      "category_id",
+      categories.map((category) => category.id)
+    )
+    .eq("is_active", true);
+
+  const allQuestions = (allQuestionsData ?? []) as QuestionCandidate[];
+
+  let usedQuestionIds = new Set<string>();
+
+  if (selectionMode === "dynamic") {
+    const { data: historyData } = await supabase
+      .from("user_question_history")
+      .select("question_id")
+      .eq("user_id", user.id);
+
+    usedQuestionIds = new Set(
+      (historyData ?? []).map((item) => String(item.question_id))
+    );
+  }
+
+  const categoryAvailability = buildCategoryAvailability({
+    categories,
+    questions: allQuestions,
+    usedQuestionIds,
+    mode: selectionMode,
+  });
 
   async function createGameSession(formData: FormData) {
     "use server";
@@ -480,6 +569,11 @@ export default async function GameStartPage({
                 <span className="rounded-full border border-orange-400/30 bg-orange-400/10 px-3 py-1.5 text-orange-100">
                   اختر 6 فئات بالضبط
                 </span>
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-slate-300">
+                  {selectionMode === "dynamic"
+                    ? "عشوائي بدون تكرار"
+                    : "أسئلة ثابتة"}
+                </span>
               </div>
 
               <h1 className="mt-4 text-2xl font-black leading-tight sm:text-4xl lg:text-5xl">
@@ -525,6 +619,8 @@ export default async function GameStartPage({
           categories={categories}
           gamesRemaining={profile.games_remaining ?? 0}
           action={createGameSession}
+          categoryAvailability={categoryAvailability}
+          selectionMode={selectionMode}
         />
       </div>
     </main>

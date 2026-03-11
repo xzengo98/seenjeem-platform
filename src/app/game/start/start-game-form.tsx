@@ -26,11 +26,22 @@ type CategorySection = {
   is_active: boolean;
 };
 
+type CategoryAvailability = {
+  availableGames: number;
+  isSelectable: boolean;
+  mode: "fixed" | "dynamic";
+  easyCount: number;
+  mediumCount: number;
+  hardCount: number;
+};
+
 type Props = {
   sections?: CategorySection[];
   categories?: Category[];
   gamesRemaining: number;
   action: (formData: FormData) => void | Promise<void>;
+  categoryAvailability: Record<string, CategoryAvailability>;
+  selectionMode: "fixed" | "dynamic";
 };
 
 const REQUIRED_CATEGORY_COUNT = 6;
@@ -86,6 +97,8 @@ export default function StartGameForm({
   categories = [],
   gamesRemaining,
   action,
+  categoryAvailability,
+  selectionMode,
 }: Props) {
   const [gameName, setGameName] = useState("");
   const [teamOne, setTeamOne] = useState("");
@@ -113,6 +126,13 @@ export default function StartGameForm({
   }, [safeCategories]);
 
   function toggleCategory(id: string) {
+    const availability = categoryAvailability[id];
+
+    if (!availability?.isSelectable) {
+      setErrorMessage("هذه الفئة غير متاحة حاليًا لهذا الحساب.");
+      return;
+    }
+
     setSelectedCategories((prev) => {
       const isSelected = prev.includes(id);
 
@@ -154,6 +174,16 @@ export default function StartGameForm({
     if (selectedCategories.length !== REQUIRED_CATEGORY_COUNT) {
       event.preventDefault();
       setErrorMessage(`يجب اختيار ${REQUIRED_CATEGORY_COUNT} فئات بالضبط.`);
+      return;
+    }
+
+    const hasUnavailableSelection = selectedCategories.some(
+      (id) => !categoryAvailability[id]?.isSelectable
+    );
+
+    if (hasUnavailableSelection) {
+      event.preventDefault();
+      setErrorMessage("هناك فئة مختارة لم تعد متاحة، حدّث الاختيار ثم حاول مجددًا.");
       return;
     }
 
@@ -239,9 +269,21 @@ export default function StartGameForm({
 
             <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-slate-950/60 p-4">
               <p className="text-sm leading-7 text-slate-300">
-                لبدء اللعبة يجب اختيار{" "}
-                <span className="font-bold text-white">6 فئات</span> بالضبط.
-                يمكنك الضغط على زر المعلومات داخل كل فئة لعرض وصفها قبل الاختيار.
+                {selectionMode === "dynamic" ? (
+                  <>
+                    حسابك يعمل الآن بنمط{" "}
+                    <span className="font-bold text-white">
+                      عشوائي بدون تكرار
+                    </span>
+                    . تحت كل فئة سيظهر عدد الألعاب المتبقية الممكنة.
+                  </>
+                ) : (
+                  <>
+                    حسابك يعمل الآن بنمط{" "}
+                    <span className="font-bold text-white">الأسئلة الثابتة</span>.
+                    ستظهر لك نفس المجموعة الثابتة في كل مرة طالما الفئة مكتملة.
+                  </>
+                )}
               </p>
             </div>
 
@@ -339,6 +381,16 @@ export default function StartGameForm({
                         onToggle={() => toggleCategory(category.id)}
                         onInfoClick={handleInfoClick}
                         theme={theme}
+                        availability={
+                          categoryAvailability[category.id] ?? {
+                            availableGames: 0,
+                            isSelectable: false,
+                            mode: selectionMode,
+                            easyCount: 0,
+                            mediumCount: 0,
+                            hardCount: 0,
+                          }
+                        }
                       />
                     );
                   })}
@@ -376,6 +428,16 @@ export default function StartGameForm({
                       onToggle={() => toggleCategory(category.id)}
                       onInfoClick={handleInfoClick}
                       theme={getSectionTheme("default")}
+                      availability={
+                        categoryAvailability[category.id] ?? {
+                          availableGames: 0,
+                          isSelectable: false,
+                          mode: selectionMode,
+                          easyCount: 0,
+                          mediumCount: 0,
+                          hardCount: 0,
+                        }
+                      }
                     />
                   );
                 })}
@@ -441,6 +503,7 @@ function CategoryCard({
   onToggle,
   onInfoClick,
   theme,
+  availability,
 }: {
   category: Category;
   active: boolean;
@@ -456,15 +519,28 @@ function CategoryCard({
     glow: string;
     chip: string;
   };
+  availability: CategoryAvailability;
 }) {
+  const availabilityText = !availability.isSelectable
+    ? "غير متاحة"
+    : availability.mode === "dynamic"
+    ? `باقي ${availability.availableGames} لعبة`
+    : "أسئلة ثابتة";
+
+  const availabilityClass = !availability.isSelectable
+    ? "bg-red-500/15 text-red-200 border-red-500/20"
+    : availability.mode === "dynamic"
+    ? "bg-emerald-500/15 text-emerald-200 border-emerald-500/20"
+    : "bg-white/10 text-white border-white/15";
+
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className={`group relative overflow-hidden rounded-[1.75rem] border text-right transition ${
+    <div
+      className={`group relative overflow-hidden rounded-[1.75rem] border transition ${
         active
           ? "border-cyan-400 bg-cyan-400/10 shadow-[0_0_0_1px_rgba(34,211,238,0.2)]"
-          : `border-white/10 bg-slate-950/70 ${theme.ring}`
+          : availability.isSelectable
+          ? `border-white/10 bg-slate-950/70 ${theme.ring}`
+          : "border-white/10 bg-slate-950/50 opacity-70"
       }`}
     >
       <div
@@ -486,7 +562,12 @@ function CategoryCard({
         </div>
       ) : null}
 
-      <div className="relative flex h-full flex-col">
+      <button
+        type="button"
+        onClick={onToggle}
+        disabled={!availability.isSelectable}
+        className="relative block h-full w-full text-right disabled:cursor-not-allowed"
+      >
         <div className="relative aspect-[1.02/1] overflow-hidden bg-slate-200/90">
           {category.image_url ? (
             <img
@@ -512,10 +593,18 @@ function CategoryCard({
           ) : null}
         </div>
 
-        <div className={`relative px-3 py-3 text-center ${theme.chip}`}>
+        <div className={`relative space-y-2 px-3 py-3 text-center ${theme.chip}`}>
           <p className="text-base font-black sm:text-lg">{category.name}</p>
+
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${availabilityClass}`}
+            >
+              {availabilityText}
+            </span>
+          </div>
         </div>
-      </div>
-    </button>
+      </button>
+    </div>
   );
 }

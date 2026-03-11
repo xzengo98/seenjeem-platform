@@ -1,16 +1,20 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import AdminEmptyState from "@/components/admin/admin-empty-state";
+import AdminPageHeader from "@/components/admin/admin-page-header";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
+
+export const dynamic = "force-dynamic";
 
 type UserRow = {
   id: string;
   email: string | null;
   username: string | null;
   phone: string | null;
-  role: string;
-  games_remaining: number;
-  games_played: number;
+  role: string | null;
+  account_tier: string | null;
+  games_remaining: number | null;
+  games_played: number | null;
   created_at: string | null;
 };
 
@@ -20,6 +24,22 @@ type PageProps = {
     error?: string;
   }>;
 };
+
+function formatDate(value: string | null) {
+  if (!value) return "-";
+
+  try {
+    return new Intl.DateTimeFormat("ar", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
 
 async function updateUserAction(formData: FormData) {
   "use server";
@@ -45,8 +65,15 @@ async function updateUserAction(formData: FormData) {
   }
 
   const userId = String(formData.get("user_id") ?? "");
-  const role = String(formData.get("role") ?? "user");
-  const gamesRemaining = Number(formData.get("games_remaining") ?? 0);
+  const roleRaw = String(formData.get("role") ?? "user");
+  const tierRaw = String(formData.get("account_tier") ?? "free");
+  const gamesRemainingRaw = Number(formData.get("games_remaining") ?? 0);
+
+  const role = roleRaw === "admin" ? "admin" : "user";
+  const accountTier = tierRaw === "premium" ? "premium" : "free";
+  const gamesRemaining = Number.isFinite(gamesRemainingRaw)
+    ? Math.max(0, Math.floor(gamesRemainingRaw))
+    : 0;
 
   if (!userId) {
     redirect("/admin/users?error=invalid");
@@ -56,7 +83,8 @@ async function updateUserAction(formData: FormData) {
     .from("profiles")
     .update({
       role,
-      games_remaining: Number.isFinite(gamesRemaining) ? gamesRemaining : 0,
+      account_tier: accountTier,
+      games_remaining: gamesRemaining,
     })
     .eq("id", userId);
 
@@ -65,9 +93,10 @@ async function updateUserAction(formData: FormData) {
   }
 
   revalidatePath("/admin/users");
-  revalidatePath("/");
-  revalidatePath("/account");
   revalidatePath("/admin");
+  revalidatePath("/account");
+  revalidatePath("/game/start");
+  revalidatePath("/");
 
   redirect("/admin/users?saved=1");
 }
@@ -97,73 +126,102 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, email, username, phone, role, games_remaining, games_played, created_at"
+      "id, email, username, phone, role, account_tier, games_remaining, games_played, created_at"
     )
     .order("created_at", { ascending: false });
 
   const users: UserRow[] = Array.isArray(data) ? (data as UserRow[]) : [];
 
   return (
-    <div className="space-y-8">
-      <div className="rounded-[2rem] border border-white/10 bg-white/5 px-8 py-6">
-        <h1 className="text-4xl font-black text-white">إدارة المستخدمين</h1>
-        <p className="mt-3 text-slate-300">
-          من هنا تستطيع تعديل الصلاحيات وعدد الألعاب المتبقية لكل مستخدم.
-        </p>
-      </div>
+    <div className="space-y-6">
+      <AdminPageHeader
+        title="إدارة الأعضاء"
+        description="من هنا يمكنك تعديل الدور الإداري، نوع الحساب free أو premium، وعدد الألعاب المتبقية لكل مستخدم."
+      />
 
       {params.saved ? (
-        <div className="rounded-2xl border border-green-500/20 bg-green-500/10 p-4 text-green-200">
+        <div className="rounded-[1.5rem] border border-emerald-500/20 bg-emerald-500/10 px-5 py-4 text-sm text-emerald-100 sm:text-base">
           تم حفظ التعديلات بنجاح.
         </div>
       ) : null}
 
       {params.error ? (
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-red-200">
+        <div className="rounded-[1.5rem] border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm text-red-100 sm:text-base">
           حدث خطأ أثناء الحفظ.
         </div>
       ) : null}
 
       {error ? (
-        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-red-200">
+        <div className="rounded-[1.5rem] border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm text-red-100 sm:text-base">
           فشل تحميل المستخدمين: {error.message}
         </div>
-      ) : (
-        <div className="space-y-4">
-          {users.length > 0 ? (
-            users.map((item) => (
-              <form
-                key={item.id}
-                action={updateUserAction}
-                className="rounded-[2rem] border border-white/10 bg-white/5 p-6"
-              >
-                <input type="hidden" name="user_id" value={item.id} />
+      ) : users.length > 0 ? (
+        <div className="grid gap-4 xl:grid-cols-2">
+          {users.map((item) => (
+            <form
+              key={item.id}
+              action={updateUserAction}
+              className="rounded-[1.75rem] border border-white/10 bg-slate-900/50 p-4 sm:p-5"
+            >
+              <input type="hidden" name="user_id" value={item.id} />
 
-                <div className="grid gap-6 lg:grid-cols-[1.4fr_1.4fr_1fr_1fr_1fr_auto]">
-                  <div>
-                    <div className="text-sm text-slate-400">المستخدم</div>
-                    <div className="mt-2 text-lg font-bold text-white">
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs text-cyan-300 sm:text-sm">المستخدم</p>
+                    <h3 className="mt-1 break-words text-2xl font-black text-white sm:text-3xl">
                       {item.username || "بدون اسم مستخدم"}
-                    </div>
-                    <div className="mt-2 break-all text-xs text-slate-500">
+                    </h3>
+                    <p className="mt-2 break-all text-xs text-slate-500">
                       {item.id}
-                    </div>
+                    </p>
                   </div>
 
-                  <div>
-                    <div className="text-sm text-slate-400">البريد / الهاتف</div>
-                    <div className="mt-2 text-white">{item.email || "-"}</div>
-                    <div className="mt-1 text-slate-300">{item.phone || "-"}</div>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-bold text-white">
+                      {item.role === "admin" ? "admin" : "user"}
+                    </span>
+                    <span
+                      className={`rounded-full border px-3 py-1.5 text-xs font-bold ${
+                        item.account_tier === "premium"
+                          ? "border-orange-400/20 bg-orange-400/10 text-orange-100"
+                          : "border-cyan-400/20 bg-cyan-400/10 text-cyan-200"
+                      }`}
+                    >
+                      {item.account_tier === "premium" ? "premium" : "free"}
+                    </span>
                   </div>
+                </div>
 
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <MiniInfoCard label="البريد الإلكتروني" value={item.email || "-"} />
+                  <MiniInfoCard label="رقم الهاتف" value={item.phone || "-"} />
+                  <MiniInfoCard
+                    label="الألعاب المتبقية"
+                    value={String(item.games_remaining ?? 0)}
+                  />
+                  <MiniInfoCard
+                    label="الألعاب التي لُعبت"
+                    value={String(item.games_played ?? 0)}
+                  />
+                </div>
+
+                <div className="rounded-[1.25rem] border border-white/10 bg-white/5 px-4 py-3">
+                  <p className="text-xs text-slate-400 sm:text-sm">تاريخ الإنشاء</p>
+                  <p className="mt-2 text-sm font-bold text-white sm:text-base">
+                    {formatDate(item.created_at)}
+                  </p>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-3">
                   <div>
-                    <label className="mb-2 block text-sm text-slate-400">
+                    <label className="mb-2 block text-sm font-semibold text-white">
                       الدور
                     </label>
                     <select
                       name="role"
-                      defaultValue={item.role}
-                      className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-white outline-none"
+                      defaultValue={item.role ?? "user"}
+                      className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400/50"
                     >
                       <option value="user">user</option>
                       <option value="admin">admin</option>
@@ -171,57 +229,67 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
                   </div>
 
                   <div>
-                    <label className="mb-2 block text-sm text-slate-400">
+                    <label className="mb-2 block text-sm font-semibold text-white">
+                      نوع الحساب
+                    </label>
+                    <select
+                      name="account_tier"
+                      defaultValue={item.account_tier ?? "free"}
+                      className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400/50"
+                    >
+                      <option value="free">free</option>
+                      <option value="premium">premium</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-sm font-semibold text-white">
                       الألعاب المتبقية
                     </label>
                     <input
                       type="number"
+                      min={0}
+                      step={1}
                       name="games_remaining"
                       defaultValue={item.games_remaining ?? 0}
-                      min={0}
-                      className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-white outline-none"
+                      className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none transition focus:border-cyan-400/50"
                     />
                   </div>
-
-                  <div>
-                    <div className="text-sm text-slate-400">الألعاب التي لعبها</div>
-                    <div className="mt-2 text-2xl font-black text-cyan-300">
-                      {item.games_played ?? 0}
-                    </div>
-                    <div className="mt-2 text-xs text-slate-500">
-                      {item.created_at
-                        ? new Date(item.created_at).toLocaleDateString("ar-EG")
-                        : "-"}
-                    </div>
-                  </div>
-
-                  <div className="flex items-end">
-                    <button
-                      type="submit"
-                      className="rounded-xl bg-cyan-400 px-5 py-3 font-bold text-slate-950"
-                    >
-                      حفظ
-                    </button>
-                  </div>
                 </div>
-              </form>
-            ))
-          ) : (
-            <div className="rounded-[2rem] border border-white/10 bg-white/5 px-4 py-10 text-center text-slate-400">
-              لا يوجد مستخدمون حاليًا.
-            </div>
-          )}
-        </div>
-      )}
 
-      <div>
-        <Link
-          href="/admin"
-          className="rounded-2xl border border-white/10 px-5 py-3 font-semibold text-slate-300"
-        >
-          العودة للوحة التحكم
-        </Link>
-      </div>
+                <button
+                  type="submit"
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-cyan-400 px-5 py-3 text-base font-black text-slate-950 transition hover:bg-cyan-300"
+                >
+                  حفظ التعديلات
+                </button>
+              </div>
+            </form>
+          ))}
+        </div>
+      ) : (
+        <AdminEmptyState
+          title="لا يوجد مستخدمون حاليًا"
+          description="عند إنشاء حسابات جديدة ستظهر هنا لتتمكن من إدارتها."
+        />
+      )}
+    </div>
+  );
+}
+
+function MiniInfoCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[1.25rem] border border-white/10 bg-white/5 px-4 py-3">
+      <p className="text-xs text-slate-400 sm:text-sm">{label}</p>
+      <p className="mt-2 break-words text-sm font-bold text-white sm:text-base">
+        {value}
+      </p>
     </div>
   );
 }
