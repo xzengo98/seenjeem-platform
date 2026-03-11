@@ -71,6 +71,17 @@ type BoardContentProps = {
   compact?: boolean;
 };
 
+type BoardState = {
+  teamOneScore: number;
+  teamTwoScore: number;
+  usedQuestionIds: string[];
+  openQuestionId: string | null;
+  showAnswer: boolean;
+  showWinnerPicker: boolean;
+  timeLeft: number;
+  savedAt: number;
+};
+
 const MOBILE_CATEGORY_WIDTH = 152;
 const MOBILE_SIDEBAR_WIDTH = 176;
 const MOBILE_COLUMN_GAP = 12;
@@ -120,6 +131,49 @@ function getVisualBySlug(slug: string) {
 
 function stripHtml(value: string) {
   return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function normalizeBoardState(raw: Record<string, unknown> | null | undefined): BoardState {
+  return {
+    teamOneScore:
+      typeof raw?.teamOneScore === "number" ? raw.teamOneScore : 0,
+    teamTwoScore:
+      typeof raw?.teamTwoScore === "number" ? raw.teamTwoScore : 0,
+    usedQuestionIds: Array.isArray(raw?.usedQuestionIds)
+      ? raw.usedQuestionIds.map((value) => String(value))
+      : [],
+    openQuestionId:
+      typeof raw?.openQuestionId === "string" ? raw.openQuestionId : null,
+    showAnswer: Boolean(raw?.showAnswer ?? false),
+    showWinnerPicker: Boolean(raw?.showWinnerPicker ?? false),
+    timeLeft:
+      typeof raw?.timeLeft === "number" && raw.timeLeft >= 0
+        ? raw.timeLeft
+        : QUESTION_TIMER_SECONDS,
+    savedAt: typeof raw?.savedAt === "number" ? raw.savedAt : 0,
+  };
+}
+
+function readLocalBoardState(storageKey: string): BoardState | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return normalizeBoardState(parsed);
+  } catch {
+    return null;
+  }
+}
+
+function writeLocalBoardState(storageKey: string, state: BoardState) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(storageKey, JSON.stringify(state));
+  } catch {}
 }
 
 function RichContent({
@@ -611,34 +665,36 @@ export default function GameBoardClient({
 }: Props) {
   const router = useRouter();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
-  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mobileWrapRef = useRef<HTMLDivElement | null>(null);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSavedPayloadRef = useRef<string>("");
 
-  const [teamOneScore, setTeamOneScore] = useState(
-    Number(initialBoardState?.teamOneScore ?? 0)
-  );
-  const [teamTwoScore, setTeamTwoScore] = useState(
-    Number(initialBoardState?.teamTwoScore ?? 0)
+  const storageKey = `seenjeem-board-state:${sessionId}`;
+  const initialState = useMemo(
+    () => normalizeBoardState(initialBoardState),
+    [initialBoardState]
   );
 
+  const [teamOneScore, setTeamOneScore] = useState(initialState.teamOneScore);
+  const [teamTwoScore, setTeamTwoScore] = useState(initialState.teamTwoScore);
   const [usedQuestionIds, setUsedQuestionIds] = useState<string[]>(
-    Array.isArray(initialBoardState?.usedQuestionIds)
-      ? (initialBoardState.usedQuestionIds as string[])
-      : questions.filter((q) => q.is_used).map((q) => q.id)
+    initialState.usedQuestionIds
   );
-
+  const [restoredOpenQuestionId, setRestoredOpenQuestionId] = useState<string | null>(
+    initialState.openQuestionId
+  );
   const [openQuestion, setOpenQuestion] = useState<OpenQuestion | null>(null);
-  const [showAnswer, setShowAnswer] = useState(
-    Boolean(initialBoardState?.showAnswer ?? false)
-  );
+  const [showAnswer, setShowAnswer] = useState(initialState.showAnswer);
   const [showWinnerPicker, setShowWinnerPicker] = useState(
-    Boolean(initialBoardState?.showWinnerPicker ?? false)
+    initialState.showWinnerPicker
   );
   const [modalBusy, setModalBusy] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(QUESTION_TIMER_SECONDS);
+  const [timeLeft, setTimeLeft] = useState(initialState.timeLeft);
   const [timerRunning, setTimerRunning] = useState(false);
   const [mobileScale, setMobileScale] = useState(1);
   const [mobileHeight, setMobileHeight] = useState(MOBILE_BOARD_HEIGHT);
+
+  const boardStateRef = useRef<BoardState>(initialState);
 
   const grouped = useMemo<GroupedCategory[]>(() => {
     const targetPattern = [200, 200, 400, 400, 600, 600];
@@ -656,7 +712,6 @@ export default function GameBoardClient({
 
       const slots = targetPattern.map((points, index) => {
         const matched = categoryQuestions.filter((q) => q.points === points);
-
         const samePointIndex =
           targetPattern.slice(0, index + 1).filter((value) => value === points)
             .length - 1;
@@ -689,35 +744,120 @@ export default function GameBoardClient({
     );
   }, [grouped]);
 
-  useEffect(() => {
-    const openQuestionId = initialBoardState?.openQuestionId;
+  function buildBoardState(overrides: Partial<BoardState> = {}): BoardState {
+    return {
+      teamOneScore,
+      teamTwoScore,
+      usedQuestionIds,
+      openQuestionId: restoredOpenQuestionId,
+      showAnswer,
+      showWinnerPicker,
+      timeLeft,
+      savedAt: Date.now(),
+      ...overrides,
+    };
+  }
 
-    if (!openQuestionId || openQuestion) return;
+  async function persistToServer(state: BoardState) {
+    const payload = JSON.stringify(state);
+
+    if (payload === lastSavedPayloadRef.current) {
+      return;
+    }
+
+    lastSavedPayloadRef.current = payload;
+
+    const { error } = await supabase
+      .from("game_sessions")
+      .update({
+        board_state: state,
+      })
+      .eq("id", sessionId)
+      .eq("user_id", userId);
+
+    if (error) {
+      lastSavedPayloadRef.current = "";
+    }
+  }
+
+  function queuePersist(state: BoardState, immediate = false) {
+    boardStateRef.current = state;
+    writeLocalBoardState(storageKey, state);
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    if (immediate) {
+      void persistToServer(state);
+      return;
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      void persistToServer(state);
+    }, 250);
+  }
+
+  useEffect(() => {
+    const localState = readLocalBoardState(storageKey);
+
+    if (!localState) return;
+    if (localState.savedAt <= initialState.savedAt) return;
+
+    setTeamOneScore(localState.teamOneScore);
+    setTeamTwoScore(localState.teamTwoScore);
+    setUsedQuestionIds(localState.usedQuestionIds);
+    setRestoredOpenQuestionId(localState.openQuestionId);
+    setShowAnswer(localState.showAnswer);
+    setShowWinnerPicker(localState.showWinnerPicker);
+    setTimeLeft(localState.timeLeft > 0 ? localState.timeLeft : QUESTION_TIMER_SECONDS);
+    setTimerRunning(false);
+    boardStateRef.current = localState;
+  }, [initialState.savedAt, storageKey]);
+
+  useEffect(() => {
+    boardStateRef.current = {
+      teamOneScore,
+      teamTwoScore,
+      usedQuestionIds,
+      openQuestionId: restoredOpenQuestionId,
+      showAnswer,
+      showWinnerPicker,
+      timeLeft,
+      savedAt: boardStateRef.current.savedAt || initialState.savedAt,
+    };
+  }, [
+    teamOneScore,
+    teamTwoScore,
+    usedQuestionIds,
+    restoredOpenQuestionId,
+    showAnswer,
+    showWinnerPicker,
+    timeLeft,
+    initialState.savedAt,
+  ]);
+
+  useEffect(() => {
+    if (!restoredOpenQuestionId || openQuestion) return;
 
     for (const category of grouped) {
       for (const row of category.rows) {
         for (const slot of row) {
-          if (slot.question?.id === openQuestionId) {
+          if (slot.question?.id === restoredOpenQuestionId) {
             setOpenQuestion({
               ...slot.question,
               categoryName: category.name,
               slotIndex: slot.slotIndex,
             });
-
-            if (
-              !Boolean(initialBoardState?.showAnswer ?? false) &&
-              !Boolean(initialBoardState?.showWinnerPicker ?? false)
-            ) {
-              setTimeLeft(QUESTION_TIMER_SECONDS);
-              setTimerRunning(true);
-            }
-
+            setTimerRunning(false);
             return;
           }
         }
       }
     }
-  }, [grouped, initialBoardState, openQuestion]);
+
+    setRestoredOpenQuestionId(null);
+  }, [grouped, restoredOpenQuestionId, openQuestion]);
 
   useEffect(() => {
     if (playableQuestionIds.length === 0) return;
@@ -752,43 +892,36 @@ export default function GameBoardClient({
   ]);
 
   useEffect(() => {
-    const boardState = {
-      teamOneScore,
-      teamTwoScore,
-      usedQuestionIds,
-      openQuestionId: openQuestion?.id ?? null,
-      showAnswer,
-      showWinnerPicker,
-    };
+    function flushState() {
+      const state = {
+        ...boardStateRef.current,
+        savedAt: Date.now(),
+      };
 
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
+      writeLocalBoardState(storageKey, state);
+      void persistToServer(state);
     }
 
-    saveTimeoutRef.current = setTimeout(() => {
-      void supabase.rpc("update_game_board_state", {
-        p_session_id: sessionId,
-        p_user_id: userId,
-        p_board_state: boardState,
-      });
-    }, 450);
+    function handleVisibilityChange() {
+      if (document.visibilityState === "hidden") {
+        flushState();
+      }
+    }
+
+    window.addEventListener("pagehide", flushState);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
+      window.removeEventListener("pagehide", flushState);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
+
+      flushState();
     };
-  }, [
-    supabase,
-    sessionId,
-    userId,
-    teamOneScore,
-    teamTwoScore,
-    usedQuestionIds,
-    openQuestion,
-    showAnswer,
-    showWinnerPicker,
-  ]);
+  }, [storageKey, sessionId, userId, supabase]);
 
   useEffect(() => {
     function updateMobileBoardScale() {
@@ -848,6 +981,14 @@ export default function GameBoardClient({
         if (prev <= 1) {
           window.clearInterval(timer);
           setTimerRunning(false);
+
+          const nextState = {
+            ...boardStateRef.current,
+            timeLeft: 0,
+            savedAt: Date.now(),
+          };
+
+          queuePersist(nextState, true);
           return 0;
         }
 
@@ -865,26 +1006,46 @@ export default function GameBoardClient({
   ) {
     if (usedQuestionIds.includes(question.id) || modalBusy) return;
 
+    const nextState = buildBoardState({
+      openQuestionId: question.id,
+      showAnswer: false,
+      showWinnerPicker: false,
+      timeLeft: QUESTION_TIMER_SECONDS,
+    });
+
     setOpenQuestion({
       ...question,
       categoryName,
       slotIndex,
     });
+    setRestoredOpenQuestionId(question.id);
     setShowAnswer(false);
     setShowWinnerPicker(false);
     setTimeLeft(QUESTION_TIMER_SECONDS);
     setTimerRunning(true);
+
+    queuePersist(nextState, true);
   }
 
   function closeModal() {
     if (modalBusy) return;
 
+    const nextState = buildBoardState({
+      openQuestionId: null,
+      showAnswer: false,
+      showWinnerPicker: false,
+      timeLeft: QUESTION_TIMER_SECONDS,
+    });
+
     setModalBusy(true);
     setOpenQuestion(null);
+    setRestoredOpenQuestionId(null);
     setShowAnswer(false);
     setShowWinnerPicker(false);
     setTimerRunning(false);
     setTimeLeft(QUESTION_TIMER_SECONDS);
+
+    queuePersist(nextState, true);
 
     setTimeout(() => {
       setModalBusy(false);
@@ -894,10 +1055,19 @@ export default function GameBoardClient({
   function revealAnswer() {
     if (modalBusy || !openQuestion) return;
 
+    const nextState = buildBoardState({
+      openQuestionId: openQuestion.id,
+      showAnswer: true,
+      showWinnerPicker: false,
+      timeLeft,
+    });
+
     setModalBusy(true);
     setShowAnswer(true);
     setShowWinnerPicker(false);
     setTimerRunning(false);
+
+    queuePersist(nextState, true);
 
     setTimeout(() => {
       setModalBusy(false);
@@ -907,9 +1077,18 @@ export default function GameBoardClient({
   function goToWinnerPicker() {
     if (modalBusy || !openQuestion) return;
 
+    const nextState = buildBoardState({
+      openQuestionId: openQuestion.id,
+      showAnswer: true,
+      showWinnerPicker: true,
+      timeLeft,
+    });
+
     setModalBusy(true);
     setShowWinnerPicker(true);
     setTimerRunning(false);
+
+    queuePersist(nextState, true);
 
     setTimeout(() => {
       setModalBusy(false);
@@ -919,11 +1098,20 @@ export default function GameBoardClient({
   function backToQuestion() {
     if (modalBusy || !openQuestion) return;
 
+    const nextState = buildBoardState({
+      openQuestionId: openQuestion.id,
+      showAnswer: false,
+      showWinnerPicker: false,
+      timeLeft: QUESTION_TIMER_SECONDS,
+    });
+
     setModalBusy(true);
     setShowAnswer(false);
     setShowWinnerPicker(false);
     setTimeLeft(QUESTION_TIMER_SECONDS);
     setTimerRunning(true);
+
+    queuePersist(nextState, true);
 
     setTimeout(() => {
       setModalBusy(false);
@@ -933,10 +1121,19 @@ export default function GameBoardClient({
   function backToAnswer() {
     if (modalBusy || !openQuestion) return;
 
+    const nextState = buildBoardState({
+      openQuestionId: openQuestion.id,
+      showAnswer: true,
+      showWinnerPicker: false,
+      timeLeft,
+    });
+
     setModalBusy(true);
     setShowWinnerPicker(false);
     setShowAnswer(true);
     setTimerRunning(false);
+
+    queuePersist(nextState, true);
 
     setTimeout(() => {
       setModalBusy(false);
@@ -946,20 +1143,35 @@ export default function GameBoardClient({
   function awardPoints(winner: "teamOne" | "teamTwo" | "none") {
     if (!openQuestion || modalBusy) return;
 
+    const nextTeamOneScore =
+      winner === "teamOne" ? teamOneScore + openQuestion.points : teamOneScore;
+    const nextTeamTwoScore =
+      winner === "teamTwo" ? teamTwoScore + openQuestion.points : teamTwoScore;
+    const nextUsedQuestionIds = [...usedQuestionIds, openQuestion.id];
+
+    const nextState: BoardState = {
+      teamOneScore: nextTeamOneScore,
+      teamTwoScore: nextTeamTwoScore,
+      usedQuestionIds: nextUsedQuestionIds,
+      openQuestionId: null,
+      showAnswer: false,
+      showWinnerPicker: false,
+      timeLeft: QUESTION_TIMER_SECONDS,
+      savedAt: Date.now(),
+    };
+
     setModalBusy(true);
-
-    if (winner === "teamOne") {
-      setTeamOneScore((prev) => prev + openQuestion.points);
-    } else if (winner === "teamTwo") {
-      setTeamTwoScore((prev) => prev + openQuestion.points);
-    }
-
-    setUsedQuestionIds((prev) => [...prev, openQuestion.id]);
+    setTeamOneScore(nextTeamOneScore);
+    setTeamTwoScore(nextTeamTwoScore);
+    setUsedQuestionIds(nextUsedQuestionIds);
     setOpenQuestion(null);
+    setRestoredOpenQuestionId(null);
     setShowAnswer(false);
     setShowWinnerPicker(false);
     setTimerRunning(false);
     setTimeLeft(QUESTION_TIMER_SECONDS);
+
+    queuePersist(nextState, true);
 
     setTimeout(() => {
       setModalBusy(false);
@@ -973,24 +1185,62 @@ export default function GameBoardClient({
 
   function resetTimer() {
     if (!openQuestion) return;
+
+    const nextState = buildBoardState({
+      openQuestionId: openQuestion.id,
+      showAnswer,
+      showWinnerPicker,
+      timeLeft: QUESTION_TIMER_SECONDS,
+    });
+
     setTimeLeft(QUESTION_TIMER_SECONDS);
     setTimerRunning(!showAnswer && !showWinnerPicker);
+
+    queuePersist(nextState, true);
   }
 
   function increaseTeamOneScore() {
-    setTeamOneScore((prev) => prev + 100);
+    const nextScore = teamOneScore + 100;
+    setTeamOneScore(nextScore);
+
+    const nextState = buildBoardState({
+      teamOneScore: nextScore,
+    });
+
+    queuePersist(nextState, true);
   }
 
   function decreaseTeamOneScore() {
-    setTeamOneScore((prev) => Math.max(prev - 100, 0));
+    const nextScore = Math.max(teamOneScore - 100, 0);
+    setTeamOneScore(nextScore);
+
+    const nextState = buildBoardState({
+      teamOneScore: nextScore,
+    });
+
+    queuePersist(nextState, true);
   }
 
   function increaseTeamTwoScore() {
-    setTeamTwoScore((prev) => prev + 100);
+    const nextScore = teamTwoScore + 100;
+    setTeamTwoScore(nextScore);
+
+    const nextState = buildBoardState({
+      teamTwoScore: nextScore,
+    });
+
+    queuePersist(nextState, true);
   }
 
   function decreaseTeamTwoScore() {
-    setTeamTwoScore((prev) => Math.max(prev - 100, 0));
+    const nextScore = Math.max(teamTwoScore - 100, 0);
+    setTeamTwoScore(nextScore);
+
+    const nextState = buildBoardState({
+      teamTwoScore: nextScore,
+    });
+
+    queuePersist(nextState, true);
   }
 
   const leadingTeam =

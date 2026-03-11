@@ -79,25 +79,18 @@ export default async function GameBoardPage({
 
   if (selectedRaw.length === 0) {
     return (
-      <main
-        dir="rtl"
-        className="min-h-screen bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8"
-      >
-        <div className="mx-auto max-w-3xl rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-center sm:p-10">
-          <h1 className="text-2xl font-black sm:text-4xl">
-            لا توجد فئات في هذه الجلسة
-          </h1>
-          <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-lg">
+      <main className="min-h-screen bg-slate-950 px-4 py-8 text-white">
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-white/10 bg-white/5 p-6 text-center">
+          <h1 className="text-3xl font-black text-white">لا توجد فئات في هذه الجلسة</h1>
+          <p className="mt-4 text-slate-300">
             يبدو أن الجلسة أُنشئت بدون فئات أو لم يتم حفظها بشكل صحيح.
           </p>
-          <div className="mt-6">
-            <Link
-              href="/game/start"
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-cyan-400 px-6 py-3 font-bold text-slate-950 transition hover:bg-cyan-300"
-            >
-              الرجوع لإنشاء لعبة جديدة
-            </Link>
-          </div>
+          <Link
+            href="/game/start"
+            className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-cyan-400 px-6 py-3 text-base font-black text-slate-950"
+          >
+            الرجوع لإنشاء لعبة جديدة
+          </Link>
         </div>
       </main>
     );
@@ -114,10 +107,7 @@ export default async function GameBoardPage({
   const categoriesById = (categoriesByIdData ?? []) as CategoryRow[];
 
   if (categoriesById.length > 0) {
-    const orderMap = new Map(
-      selectedRaw.map((value, index) => [value, index])
-    );
-
+    const orderMap = new Map(selectedRaw.map((value, index) => [value, index]));
     categories = [...categoriesById].sort((a, b) => {
       const aOrder = orderMap.get(a.id) ?? 999;
       const bOrder = orderMap.get(b.id) ?? 999;
@@ -133,10 +123,7 @@ export default async function GameBoardPage({
     const categoriesBySlug = (categoriesBySlugData ?? []) as CategoryRow[];
 
     if (categoriesBySlug.length > 0) {
-      const orderMap = new Map(
-        selectedRaw.map((value, index) => [value, index])
-      );
-
+      const orderMap = new Map(selectedRaw.map((value, index) => [value, index]));
       categories = [...categoriesBySlug].sort((a, b) => {
         const aOrder = orderMap.get(a.slug) ?? 999;
         const bOrder = orderMap.get(b.slug) ?? 999;
@@ -147,23 +134,18 @@ export default async function GameBoardPage({
 
   if (categories.length === 0) {
     return (
-      <main
-        dir="rtl"
-        className="min-h-screen bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8"
-      >
-        <div className="mx-auto max-w-3xl rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-center sm:p-10">
-          <h1 className="text-2xl font-black sm:text-4xl">تعذر تحميل الفئات</h1>
-          <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-lg">
+      <main className="min-h-screen bg-slate-950 px-4 py-8 text-white">
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-white/10 bg-white/5 p-6 text-center">
+          <h1 className="text-3xl font-black text-white">تعذر تحميل الفئات</h1>
+          <p className="mt-4 text-slate-300">
             الفئات المختارة في الجلسة لم يتم العثور عليها داخل قاعدة البيانات.
           </p>
-          <div className="mt-6">
-            <Link
-              href="/game/start"
-              className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-cyan-400 px-6 py-3 font-bold text-slate-950 transition hover:bg-cyan-300"
-            >
-              الرجوع وإنشاء لعبة جديدة
-            </Link>
-          </div>
+          <Link
+            href="/game/start"
+            className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-cyan-400 px-6 py-3 text-base font-black text-slate-950"
+          >
+            الرجوع وإنشاء لعبة جديدة
+          </Link>
         </div>
       </main>
     );
@@ -234,8 +216,8 @@ export default async function GameBoardPage({
   return (
     <GameBoardClient
       sessionId={session.id}
-      userId={session.user_id}
-      initialBoardState={(session.board_state ?? {}) as Record<string, unknown>}
+      userId={user.id}
+      initialBoardState={session.board_state ?? null}
       gameName={session.game_name}
       teamOne={session.team_one_name}
       teamTwo={session.team_two_name}
