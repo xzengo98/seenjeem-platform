@@ -92,6 +92,78 @@ function getSectionTheme(slug: string) {
   );
 }
 
+function getAvailabilityBadge(availability: CategoryAvailability) {
+  if (!availability.isSelectable) {
+    return {
+      text: "غير متاحة",
+      className: "border-red-500/20 bg-red-500/15 text-red-200",
+    };
+  }
+
+  if (availability.mode === "fixed") {
+    return {
+      text: "أسئلة ثابتة",
+      className: "border-white/15 bg-white/10 text-white",
+    };
+  }
+
+  if (availability.availableGames === 1) {
+    return {
+      text: "باقي لعبة واحدة",
+      className: "border-emerald-500/20 bg-emerald-500/15 text-emerald-200",
+    };
+  }
+
+  return {
+    text: `باقي ${availability.availableGames} لعبة`,
+    className: "border-emerald-500/20 bg-emerald-500/15 text-emerald-200",
+  };
+}
+
+function getAvailabilityHint(availability: CategoryAvailability) {
+  const missing: string[] = [];
+
+  if (availability.easyCount < 2) missing.push("200");
+  if (availability.mediumCount < 2) missing.push("400");
+  if (availability.hardCount < 2) missing.push("600");
+
+  if (!availability.isSelectable) {
+    if (missing.length > 0) {
+      return `لا يمكن اختيار هذه الفئة حاليًا لأنها لا تحتوي على عدد كافٍ من أسئلة المستويات: ${missing.join(
+        " / "
+      )}.`;
+    }
+
+    return "هذه الفئة غير متاحة حاليًا.";
+  }
+
+  if (availability.mode === "fixed") {
+    return "هذه الفئة تعرض نفس المجموعة الثابتة من الأسئلة للحسابات المجانية.";
+  }
+
+  return "يتم السحب من الأسئلة غير المستخدمة سابقًا لهذا الحساب.";
+}
+
+function getSelectionError(availability: CategoryAvailability | undefined) {
+  if (!availability) {
+    return "هذه الفئة غير متاحة حاليًا.";
+  }
+
+  const missing: string[] = [];
+
+  if (availability.easyCount < 2) missing.push("200");
+  if (availability.mediumCount < 2) missing.push("400");
+  if (availability.hardCount < 2) missing.push("600");
+
+  if (missing.length > 0) {
+    return `لا يمكن اختيار هذه الفئة لأنها لا تحتوي على ما يكفي من أسئلة ${missing.join(
+      " / "
+    )}.`;
+  }
+
+  return "هذه الفئة غير متاحة حاليًا.";
+}
+
 export default function StartGameForm({
   sections = [],
   categories = [],
@@ -129,7 +201,7 @@ export default function StartGameForm({
     const availability = categoryAvailability[id];
 
     if (!availability?.isSelectable) {
-      setErrorMessage("هذه الفئة غير متاحة حاليًا لهذا الحساب.");
+      setErrorMessage(getSelectionError(availability));
       return;
     }
 
@@ -177,11 +249,11 @@ export default function StartGameForm({
       return;
     }
 
-    const hasUnavailableSelection = selectedCategories.some(
+    const invalidSelection = selectedCategories.find(
       (id) => !categoryAvailability[id]?.isSelectable
     );
 
-    if (hasUnavailableSelection) {
+    if (invalidSelection) {
       event.preventDefault();
       setErrorMessage("هناك فئة مختارة لم تعد متاحة، حدّث الاختيار ثم حاول مجددًا.");
       return;
@@ -275,7 +347,7 @@ export default function StartGameForm({
                     <span className="font-bold text-white">
                       عشوائي بدون تكرار
                     </span>
-                    . تحت كل فئة سيظهر عدد الألعاب المتبقية الممكنة.
+                    . تحت كل فئة يظهر عدد الألعاب المتبقية الممكنة فعليًا.
                   </>
                 ) : (
                   <>
@@ -329,8 +401,8 @@ export default function StartGameForm({
               اختر الفئات المناسبة
             </h2>
             <p className="mt-2 text-sm leading-7 text-slate-300 sm:text-base">
-              كل فئة تعرض الصورة والاسم بشكل منظم، ومعها زر معلومات لقراءة وصف
-              مختصر قبل إضافتها إلى اللعبة.
+              البطاقات غير الكافية ستظهر بوضوح كغير متاحة، مع توضيح عدد الأسئلة
+              المتوفر لكل مستوى.
             </p>
           </div>
 
@@ -521,17 +593,8 @@ function CategoryCard({
   };
   availability: CategoryAvailability;
 }) {
-  const availabilityText = !availability.isSelectable
-    ? "غير متاحة"
-    : availability.mode === "dynamic"
-    ? `باقي ${availability.availableGames} لعبة`
-    : "أسئلة ثابتة";
-
-  const availabilityClass = !availability.isSelectable
-    ? "bg-red-500/15 text-red-200 border-red-500/20"
-    : availability.mode === "dynamic"
-    ? "bg-emerald-500/15 text-emerald-200 border-emerald-500/20"
-    : "bg-white/10 text-white border-white/15";
+  const badge = getAvailabilityBadge(availability);
+  const hint = getAvailabilityHint(availability);
 
   return (
     <div
@@ -540,7 +603,7 @@ function CategoryCard({
           ? "border-cyan-400 bg-cyan-400/10 shadow-[0_0_0_1px_rgba(34,211,238,0.2)]"
           : availability.isSelectable
           ? `border-white/10 bg-slate-950/70 ${theme.ring}`
-          : "border-white/10 bg-slate-950/50 opacity-70"
+          : "border-red-500/15 bg-slate-950/60 opacity-85"
       }`}
     >
       <div
@@ -581,6 +644,10 @@ function CategoryCard({
             </div>
           )}
 
+          {!availability.isSelectable ? (
+            <div className="absolute inset-0 bg-slate-950/55" />
+          ) : null}
+
           {infoOpen ? (
             <div className="absolute inset-x-3 top-14 z-20 rounded-2xl border border-white/10 bg-slate-950/95 p-3 shadow-2xl">
               <p className="text-xs font-bold text-white sm:text-sm">
@@ -589,22 +656,54 @@ function CategoryCard({
               <p className="mt-2 text-[11px] leading-6 text-slate-200 sm:text-sm">
                 {category.description || "لا يوجد وصف متاح لهذه الفئة حاليًا."}
               </p>
+
+              <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                <p className="text-[11px] font-bold text-white sm:text-sm">
+                  حالة الفئة
+                </p>
+                <p className="mt-2 text-[11px] leading-6 text-slate-300 sm:text-sm">
+                  {hint}
+                </p>
+              </div>
             </div>
           ) : null}
         </div>
 
-        <div className={`relative space-y-2 px-3 py-3 text-center ${theme.chip}`}>
+        <div className={`relative space-y-3 px-3 py-3 text-center ${theme.chip}`}>
           <p className="text-base font-black sm:text-lg">{category.name}</p>
 
           <div className="flex flex-wrap items-center justify-center gap-2">
             <span
-              className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${availabilityClass}`}
+              className={`rounded-full border px-2.5 py-1 text-[11px] font-bold ${badge.className}`}
             >
-              {availabilityText}
+              {badge.text}
             </span>
           </div>
+
+          <div className="grid grid-cols-3 gap-2 text-[11px]">
+            <StatPill label="200" value={availability.easyCount} />
+            <StatPill label="400" value={availability.mediumCount} />
+            <StatPill label="600" value={availability.hardCount} />
+          </div>
+
+          <p className="text-[11px] leading-5 text-white/85">{hint}</p>
         </div>
       </button>
+    </div>
+  );
+}
+
+function StatPill({
+  label,
+  value,
+}: {
+  label: string;
+  value: number;
+}) {
+  return (
+    <div className="rounded-xl border border-white/15 bg-black/15 px-2 py-2">
+      <p className="text-[10px] text-white/70">{label}</p>
+      <p className="mt-1 text-sm font-black text-white">{value}</p>
     </div>
   );
 }
