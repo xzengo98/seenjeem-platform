@@ -571,7 +571,7 @@ export default async function GameStartPage({
                 </span>
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-slate-300">
                   {selectionMode === "dynamic"
-                    ? "عشوائي بدون تكرار"
+                    ? "اسئلة بدون تكرار"
                     : "أسئلة ثابتة"}
                 </span>
               </div>
@@ -582,7 +582,6 @@ export default async function GameStartPage({
 
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-lg sm:leading-8">
                 اختر اسم اللعبة، أضف أسماء الفريقين، ثم حدّد ست فئات لتبدأ
-                تجربة مرتبة وواضحة على الهاتف وسطح المكتب.
               </p>
             </div>
 
