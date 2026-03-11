@@ -239,17 +239,15 @@ export default function StartGameForm({
 
             <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-slate-950/60 p-4">
               <p className="text-sm leading-7 text-slate-300">
-                لبدء اللعبة يجب اختيار <span className="font-bold text-white">6 فئات</span>{" "}
-                بالضبط. يمكنك الضغط على زر المعلومات داخل كل فئة لعرض وصفها قبل
-                الاختيار.
+                لبدء اللعبة يجب اختيار{" "}
+                <span className="font-bold text-white">6 فئات</span> بالضبط.
+                يمكنك الضغط على زر المعلومات داخل كل فئة لعرض وصفها قبل الاختيار.
               </p>
             </div>
 
             <div className="mt-4 rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-semibold text-white">
-                  حالة الاختيار
-                </p>
+                <p className="text-sm font-semibold text-white">حالة الاختيار</p>
                 <span
                   className={`rounded-full px-3 py-1 text-xs font-bold ${
                     isReadyToSubmit
@@ -264,7 +262,9 @@ export default function StartGameForm({
               <p className="mt-3 text-sm leading-7 text-slate-300">
                 {isReadyToSubmit
                   ? "تم اختيار العدد المطلوب. يمكنك الآن بدء اللعبة."
-                  : `اختر ${REQUIRED_CATEGORY_COUNT - selectedCategories.length} فئات إضافية للمتابعة.`}
+                  : `اختر ${
+                      REQUIRED_CATEGORY_COUNT - selectedCategories.length
+                    } فئات إضافية للمتابعة.`}
               </p>
             </div>
           </div>
@@ -287,7 +287,8 @@ export default function StartGameForm({
               اختر الفئات المناسبة
             </h2>
             <p className="mt-2 text-sm leading-7 text-slate-300 sm:text-base">
-             كل قسم يحتوي على عدة فئات قم باختيار الفئات الي تناسبك اسفل كل قسم 
+              كل فئة تعرض الصورة والاسم بشكل منظم، ومعها زر معلومات لقراءة وصف
+              مختصر قبل إضافتها إلى اللعبة.
             </p>
           </div>
 

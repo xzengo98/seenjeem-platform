@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import GameBoardClient from "./game-board-client";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
@@ -78,19 +79,24 @@ export default async function GameBoardPage({
 
   if (selectedRaw.length === 0) {
     return (
-      <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
-        <div className="mx-auto max-w-3xl rounded-[2rem] border border-red-500/20 bg-red-500/10 p-8 text-center">
-          <h1 className="text-4xl font-black">لا توجد فئات في هذه الجلسة</h1>
-          <p className="mt-4 text-lg text-red-200">
-            يبدو أن الجلسة أنشئت بدون فئات أو لم يتم حفظها بشكل صحيح.
+      <main
+        dir="rtl"
+        className="min-h-screen bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8"
+      >
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-center sm:p-10">
+          <h1 className="text-2xl font-black sm:text-4xl">
+            لا توجد فئات في هذه الجلسة
+          </h1>
+          <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-lg">
+            يبدو أن الجلسة أُنشئت بدون فئات أو لم يتم حفظها بشكل صحيح.
           </p>
-          <div className="mt-8">
-            <a
+          <div className="mt-6">
+            <Link
               href="/game/start"
-              className="rounded-2xl border border-white/10 px-6 py-3 font-semibold text-white"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-cyan-400 px-6 py-3 font-bold text-slate-950 transition hover:bg-cyan-300"
             >
               الرجوع لإنشاء لعبة جديدة
-            </a>
+            </Link>
           </div>
         </div>
       </main>
@@ -108,7 +114,7 @@ export default async function GameBoardPage({
   const categoriesById = (categoriesByIdData ?? []) as CategoryRow[];
 
   if (categoriesById.length > 0) {
-    const orderMap = new Map<string, number>(
+    const orderMap = new Map(
       selectedRaw.map((value, index) => [value, index])
     );
 
@@ -127,7 +133,7 @@ export default async function GameBoardPage({
     const categoriesBySlug = (categoriesBySlugData ?? []) as CategoryRow[];
 
     if (categoriesBySlug.length > 0) {
-      const orderMap = new Map<string, number>(
+      const orderMap = new Map(
         selectedRaw.map((value, index) => [value, index])
       );
 
@@ -141,50 +147,95 @@ export default async function GameBoardPage({
 
   if (categories.length === 0) {
     return (
-      <main className="min-h-screen bg-slate-950 px-6 py-16 text-white">
-        <div className="mx-auto max-w-3xl rounded-[2rem] border border-red-500/20 bg-red-500/10 p-8 text-center">
-          <h1 className="text-4xl font-black">تعذر تحميل الفئات</h1>
-          <p className="mt-4 text-lg text-red-200">
+      <main
+        dir="rtl"
+        className="min-h-screen bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8"
+      >
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 text-center sm:p-10">
+          <h1 className="text-2xl font-black sm:text-4xl">تعذر تحميل الفئات</h1>
+          <p className="mt-4 text-sm leading-7 text-slate-300 sm:text-lg">
             الفئات المختارة في الجلسة لم يتم العثور عليها داخل قاعدة البيانات.
           </p>
-          <div className="mt-8">
-            <a
+          <div className="mt-6">
+            <Link
               href="/game/start"
-              className="rounded-2xl border border-white/10 px-6 py-3 font-semibold text-white"
+              className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-cyan-400 px-6 py-3 font-bold text-slate-950 transition hover:bg-cyan-300"
             >
               الرجوع وإنشاء لعبة جديدة
-            </a>
+            </Link>
           </div>
         </div>
       </main>
     );
   }
 
-  const categoryIds = categories.map((category) => category.id);
+  const { data: sessionQuestionsData } = await supabase
+    .from("game_session_questions")
+    .select("category_id, question_id, points, slot_index")
+    .eq("session_id", session.id)
+    .order("category_id", { ascending: true })
+    .order("slot_index", { ascending: true });
 
-  const { data: questionsData } = await supabase
-    .from("questions")
-    .select(`
-      id,
-      question_text,
-      answer_text,
-      points,
-      is_active,
-      is_used,
-      category_id,
-      year_tolerance_before,
-      year_tolerance_after
-    `)
-    .in("category_id", categoryIds)
-    .eq("is_active", true);
+  let questions: QuestionRow[] = [];
 
-  const questions = (questionsData ?? []) as QuestionRow[];
+  if ((sessionQuestionsData ?? []).length > 0) {
+    const questionIds = (sessionQuestionsData ?? []).map((row) =>
+      String(row.question_id)
+    );
+
+    const { data: selectedQuestionsData } = await supabase
+      .from("questions")
+      .select(`
+        id,
+        question_text,
+        answer_text,
+        points,
+        is_active,
+        is_used,
+        category_id,
+        year_tolerance_before,
+        year_tolerance_after
+      `)
+      .in("id", questionIds)
+      .eq("is_active", true);
+
+    const questionMap = new Map(
+      ((selectedQuestionsData ?? []) as QuestionRow[]).map((question) => [
+        question.id,
+        question,
+      ])
+    );
+
+    questions = (sessionQuestionsData ?? [])
+      .map((row) => questionMap.get(String(row.question_id)) ?? null)
+      .filter((item): item is QuestionRow => Boolean(item));
+  } else {
+    const categoryIds = categories.map((category) => category.id);
+
+    const { data: questionsData } = await supabase
+      .from("questions")
+      .select(`
+        id,
+        question_text,
+        answer_text,
+        points,
+        is_active,
+        is_used,
+        category_id,
+        year_tolerance_before,
+        year_tolerance_after
+      `)
+      .in("category_id", categoryIds)
+      .eq("is_active", true);
+
+    questions = (questionsData ?? []) as QuestionRow[];
+  }
 
   return (
     <GameBoardClient
       sessionId={session.id}
-      userId={user.id}
-      initialBoardState={(session.board_state as Record<string, unknown>) ?? {}}
+      userId={session.user_id}
+      initialBoardState={(session.board_state ?? {}) as Record<string, unknown>}
       gameName={session.game_name}
       teamOne={session.team_one_name}
       teamTwo={session.team_two_name}

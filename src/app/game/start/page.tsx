@@ -28,7 +28,109 @@ type SearchParams = Promise<{
   error?: string;
 }>;
 
+type ProfileForSession = {
+  games_remaining: number | null;
+  account_tier: string | null;
+  role: string | null;
+};
+
+type QuestionCandidate = {
+  id: string;
+  category_id: string;
+  points: number;
+  created_at: string | null;
+};
+
+type SessionQuestionInsertRow = {
+  category_id: string;
+  question_id: string;
+  points: number;
+  slot_index: number;
+};
+
 const REQUIRED_CATEGORY_COUNT = 6;
+
+function shuffleArray<T>(items: T[]) {
+  const copy = [...items];
+
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+
+  return copy;
+}
+
+function buildSessionQuestions(params: {
+  selectedCategoryIds: string[];
+  allQuestions: QuestionCandidate[];
+  usedQuestionIds: Set<string>;
+  shouldRandomize: boolean;
+  categories: Category[];
+}) {
+  const {
+    selectedCategoryIds,
+    allQuestions,
+    usedQuestionIds,
+    shouldRandomize,
+    categories,
+  } = params;
+
+  const rows: SessionQuestionInsertRow[] = [];
+  const slotStarts = [
+    { points: 200, startSlot: 0 },
+    { points: 400, startSlot: 2 },
+    { points: 600, startSlot: 4 },
+  ];
+
+  for (const categoryId of selectedCategoryIds) {
+    const categoryName =
+      categories.find((item) => item.id === categoryId)?.name ?? "فئة غير معروفة";
+
+    const categoryQuestions = allQuestions.filter(
+      (question) => question.category_id === categoryId
+    );
+
+    for (const slotGroup of slotStarts) {
+      let pool = categoryQuestions.filter(
+        (question) => question.points === slotGroup.points
+      );
+
+      if (shouldRandomize) {
+        pool = pool.filter((question) => !usedQuestionIds.has(question.id));
+        pool = shuffleArray(pool);
+      } else {
+        pool = [...pool].sort((a, b) => {
+          const dateCompare = (a.created_at ?? "").localeCompare(b.created_at ?? "");
+          if (dateCompare !== 0) return dateCompare;
+          return a.id.localeCompare(b.id);
+        });
+      }
+
+      const picked = pool.slice(0, 2);
+
+      if (picked.length < 2) {
+        return {
+          error: shouldRandomize
+            ? `الفئة "${categoryName}" لا تحتوي على عدد كافٍ من أسئلة ${slotGroup.points} غير المستخدمة.`
+            : `الفئة "${categoryName}" لا تحتوي على عدد كافٍ من أسئلة ${slotGroup.points}.`,
+          rows: [] as SessionQuestionInsertRow[],
+        };
+      }
+
+      picked.forEach((question, index) => {
+        rows.push({
+          category_id: categoryId,
+          question_id: question.id,
+          points: slotGroup.points,
+          slot_index: slotGroup.startSlot + index,
+        });
+      });
+    }
+  }
+
+  return { error: null, rows };
+}
 
 export default async function GameStartPage({
   searchParams,
@@ -46,13 +148,15 @@ export default async function GameStartPage({
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
-    .select("games_remaining")
+    .select("games_remaining, account_tier, role")
     .eq("id", user.id)
     .single();
 
-  if (!profile || profile.games_remaining <= 0) {
+  const profile = profileData as ProfileForSession | null;
+
+  if (!profile || (profile.games_remaining ?? 0) <= 0) {
     return (
       <main
         dir="rtl"
@@ -150,7 +254,9 @@ export default async function GameStartPage({
     if (!gameName || !teamOne || !teamTwo) {
       redirect(
         "/game/start?error=" +
-          encodeURIComponent("اسم اللعبة واسم الفريق الأول واسم الفريق الثاني مطلوبة.")
+          encodeURIComponent(
+            "اسم اللعبة واسم الفريق الأول واسم الفريق الثاني مطلوبة."
+          )
       );
     }
 
@@ -161,15 +267,87 @@ export default async function GameStartPage({
       );
     }
 
-    const { data: profile } = await supabase
+    const { data: profileData } = await supabase
       .from("profiles")
-      .select("games_remaining")
+      .select("games_remaining, account_tier, role")
       .eq("id", user.id)
       .single();
 
-    if (!profile || profile.games_remaining <= 0) {
+    const profile = profileData as ProfileForSession | null;
+
+    if (!profile || (profile.games_remaining ?? 0) <= 0) {
       redirect(
         "/game/start?error=" + encodeURIComponent("لا توجد ألعاب متبقية")
+      );
+    }
+
+    let effectiveTier = profile.account_tier ?? "free";
+
+    if (effectiveTier !== "premium" && (profile.games_remaining ?? 0) >= 2) {
+      const { error: promoteError } = await supabase
+        .from("profiles")
+        .update({ account_tier: "premium" })
+        .eq("id", user.id);
+
+      if (promoteError) {
+        redirect(
+          "/game/start?error=" +
+            encodeURIComponent(promoteError.message || "فشل تحديث نوع الحساب")
+        );
+      }
+
+      effectiveTier = "premium";
+    }
+
+    const shouldPreventRepeat =
+      profile.role === "admin" || effectiveTier === "premium";
+
+    const { data: allQuestionsData, error: questionsError } = await supabase
+      .from("questions")
+      .select("id, category_id, points, created_at")
+      .in("category_id", selectedCategoryIds)
+      .eq("is_active", true);
+
+    if (questionsError) {
+      redirect(
+        "/game/start?error=" +
+          encodeURIComponent(questionsError.message || "فشل تحميل الأسئلة")
+      );
+    }
+
+    const allQuestions = (allQuestionsData ?? []) as QuestionCandidate[];
+    let usedQuestionIds = new Set<string>();
+
+    if (shouldPreventRepeat) {
+      const { data: historyData, error: historyError } = await supabase
+        .from("user_question_history")
+        .select("question_id")
+        .eq("user_id", user.id);
+
+      if (historyError) {
+        redirect(
+          "/game/start?error=" +
+            encodeURIComponent(historyError.message || "فشل تحميل سجل الأسئلة")
+        );
+      }
+
+      usedQuestionIds = new Set(
+        (historyData ?? []).map((item) => String(item.question_id))
+      );
+    }
+
+    const built = buildSessionQuestions({
+      selectedCategoryIds,
+      allQuestions,
+      usedQuestionIds,
+      shouldRandomize: shouldPreventRepeat,
+      categories,
+    });
+
+    if (built.error || built.rows.length === 0) {
+      redirect(
+        "/game/start?error=" +
+          encodeURIComponent(built.error || "تعذر تجهيز أسئلة الجلسة")
       );
     }
 
@@ -182,7 +360,7 @@ export default async function GameStartPage({
       showWinnerPicker: false,
     };
 
-    const { data: insertedSession, error: insertError } = await supabase
+    const { data: insertedSession, error: insertSessionError } = await supabase
       .from("game_sessions")
       .insert({
         user_id: user.id,
@@ -196,12 +374,66 @@ export default async function GameStartPage({
       .select("id")
       .single();
 
-    if (insertError || !insertedSession) {
+    if (insertSessionError || !insertedSession) {
       redirect(
-        `/game/start?error=${encodeURIComponent(
-          insertError?.message || "فشل إنشاء الجلسة"
-        )}`
+        "/game/start?error=" +
+          encodeURIComponent(insertSessionError?.message || "فشل إنشاء الجلسة")
       );
+    }
+
+    const sessionQuestionRows = built.rows.map((row) => ({
+      session_id: insertedSession.id,
+      category_id: row.category_id,
+      question_id: row.question_id,
+      points: row.points,
+      slot_index: row.slot_index,
+    }));
+
+    const { error: sessionQuestionsError } = await supabase
+      .from("game_session_questions")
+      .insert(sessionQuestionRows);
+
+    if (sessionQuestionsError) {
+      await supabase.from("game_sessions").delete().eq("id", insertedSession.id);
+
+      redirect(
+        "/game/start?error=" +
+          encodeURIComponent(
+            sessionQuestionsError.message || "فشل حفظ أسئلة الجلسة"
+          )
+      );
+    }
+
+    if (shouldPreventRepeat) {
+      const historyRows = built.rows.map((row) => ({
+        user_id: user.id,
+        question_id: row.question_id,
+        category_id: row.category_id,
+        session_id: insertedSession.id,
+      }));
+
+      const { error: historyInsertError } = await supabase
+        .from("user_question_history")
+        .upsert(historyRows, {
+          onConflict: "user_id,question_id",
+          ignoreDuplicates: true,
+        });
+
+      if (historyInsertError) {
+        await supabase
+          .from("game_session_questions")
+          .delete()
+          .eq("session_id", insertedSession.id);
+
+        await supabase.from("game_sessions").delete().eq("id", insertedSession.id);
+
+        redirect(
+          "/game/start?error=" +
+            encodeURIComponent(
+              historyInsertError.message || "فشل تحديث سجل عدم التكرار"
+            )
+        );
+      }
     }
 
     const { error: decrementError } = await supabase
@@ -212,10 +444,21 @@ export default async function GameStartPage({
       .eq("id", user.id);
 
     if (decrementError) {
+      await supabase
+        .from("user_question_history")
+        .delete()
+        .eq("session_id", insertedSession.id);
+
+      await supabase
+        .from("game_session_questions")
+        .delete()
+        .eq("session_id", insertedSession.id);
+
+      await supabase.from("game_sessions").delete().eq("id", insertedSession.id);
+
       redirect(
-        `/game/start?error=${encodeURIComponent(
-          decrementError.message || "فشل خصم لعبة"
-        )}`
+        "/game/start?error=" +
+          encodeURIComponent(decrementError.message || "فشل خصم لعبة")
       );
     }
 
@@ -245,6 +488,7 @@ export default async function GameStartPage({
 
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-lg sm:leading-8">
                 اختر اسم اللعبة، أضف أسماء الفريقين، ثم حدّد ست فئات لتبدأ
+                تجربة مرتبة وواضحة على الهاتف وسطح المكتب.
               </p>
             </div>
 
@@ -254,7 +498,7 @@ export default async function GameStartPage({
                   الألعاب المتبقية
                 </p>
                 <p className="mt-2 text-2xl font-black text-white sm:text-3xl">
-                  {profile.games_remaining}
+                  {profile.games_remaining ?? 0}
                 </p>
               </div>
 
@@ -279,7 +523,7 @@ export default async function GameStartPage({
         <StartGameForm
           sections={sections}
           categories={categories}
-          gamesRemaining={profile.games_remaining}
+          gamesRemaining={profile.games_remaining ?? 0}
           action={createGameSession}
         />
       </div>
