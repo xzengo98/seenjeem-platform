@@ -534,23 +534,20 @@ export default async function AdminQuestionsImportPage({
     let insertedCount = 0;
 
     for (const insertChunk of chunkArray(rowsToInsert, CHUNK_SIZE)) {
-      const { data, error } = await supabase
-        .from("questions")
-        .upsert(insertChunk, {
-          onConflict: "question_text",
-          ignoreDuplicates: true,
-        })
-        .select("id");
+  const { data, error } = await supabase
+    .from("questions")
+    .insert(insertChunk)
+    .select("id");
 
-      if (error) {
-        redirect(
-          "/admin/questions/import?error=" +
-            encodeURIComponent(error.message || "فشل رفع دفعة من الأسئلة.")
-        );
-      }
+  if (error) {
+    redirect(
+      "/admin/questions/import?error=" +
+        encodeURIComponent(error.message || "فشل رفع دفعة من الأسئلة.")
+    );
+  }
 
-      insertedCount += data?.length ?? 0;
-    }
+  insertedCount += data?.length ?? 0;
+}
 
     const skippedExistingCount = preparedRows.length - rowsToInsert.length;
 
