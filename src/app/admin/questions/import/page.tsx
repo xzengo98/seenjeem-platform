@@ -30,21 +30,8 @@ type CategoryRow = {
   is_active: boolean | null;
 };
 
-type ImportQuestionItem = {
-  section?: string;
-  section_slug?: string;
-  category?: string;
-  category_slug?: string;
-  points?: number | string;
-  is_active?: boolean;
-  year_tolerance_before?: number | string | null;
-  year_tolerance_after?: number | string | null;
-  question_text?: string;
-  answer_text?: string;
-  question_image_url?: string;
-  question_video_url?: string;
-  answer_image_url?: string;
-  answer_video_url?: string;
+type RawImportItem = {
+  [key: string]: unknown;
 };
 
 type InsertQuestionRow = {
@@ -71,11 +58,25 @@ function normalizeSlug(value: string) {
   return value.trim().toLowerCase().replace(/\s+/g, "-");
 }
 
-function normalizeHtml(value: string) {
+function stripHtml(value: string) {
+  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function escapeHtml(value: string) {
   return value
-    .replace(/>\s+</g, "><")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function ensureHtmlParagraph(value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return "";
+  if (/<[a-z][\s\S]*>/i.test(trimmed)) {
+    return trimmed;
+  }
+  return `<p>${escapeHtml(trimmed)}</p>`;
 }
 
 function toStringValue(value: unknown) {
@@ -89,11 +90,9 @@ function toInt(value: unknown, fallback = 0) {
 
 function chunkArray<T>(items: T[], size: number) {
   const chunks: T[][] = [];
-
   for (let i = 0; i < items.length; i += size) {
     chunks.push(items.slice(i, i + size));
   }
-
   return chunks;
 }
 
@@ -101,8 +100,12 @@ function buildMessage(parts: string[]) {
   return parts.filter(Boolean).join(" | ");
 }
 
-function makeSafeRedirectMessage(value: string) {
-  return encodeURIComponent(value);
+function firstString(item: RawImportItem, keys: string[]) {
+  for (const key of keys) {
+    const value = toStringValue(item[key]);
+    if (value) return value;
+  }
+  return "";
 }
 
 async function requireAdmin() {
@@ -163,7 +166,7 @@ export default async function AdminQuestionsImportPage({
     if (!(file instanceof File)) {
       redirect(
         "/admin/questions/import?error=" +
-          makeSafeRedirectMessage("يرجى اختيار ملف JSON صالح.")
+          encodeURIComponent("يرجى اختيار ملف JSON صالح.")
       );
     }
 
@@ -174,7 +177,7 @@ export default async function AdminQuestionsImportPage({
     } catch {
       redirect(
         "/admin/questions/import?error=" +
-          makeSafeRedirectMessage("تعذر قراءة الملف المرفوع.")
+          encodeURIComponent("تعذر قراءة الملف المرفوع.")
       );
     }
 
@@ -185,18 +188,33 @@ export default async function AdminQuestionsImportPage({
     } catch {
       redirect(
         "/admin/questions/import?error=" +
-          makeSafeRedirectMessage("الملف ليس JSON صالحًا.")
+          encodeURIComponent("الملف ليس JSON صالحًا.")
       );
     }
 
-    const payload = parsed as { questions?: ImportQuestionItem[] };
+    let items: RawImportItem[] = [];
 
-    if (!payload || !Array.isArray(payload.questions)) {
+    if (Array.isArray(parsed)) {
+      items = parsed as RawImportItem[];
+    } else if (
+      parsed &&
+      typeof parsed === "object" &&
+      Array.isArray((parsed as { questions?: unknown[] }).questions)
+    ) {
+      items = (parsed as { questions: RawImportItem[] }).questions;
+    } else {
       redirect(
         "/admin/questions/import?error=" +
-          makeSafeRedirectMessage(
-            'صيغة الملف غير صحيحة. يجب أن يحتوي على مصفوفة باسم "questions".'
+          encodeURIComponent(
+            'صيغة الملف غير صحيحة. ارفع إما Array مباشرة أو كائن يحتوي على "questions".'
           )
+      );
+    }
+
+    if (items.length === 0) {
+      redirect(
+        "/admin/questions/import?error=" +
+          encodeURIComponent("الملف لا يحتوي على أي أسئلة.")
       );
     }
 
@@ -228,122 +246,120 @@ export default async function AdminQuestionsImportPage({
       }
     }
 
-    function resolveSection(item: ImportQuestionItem) {
-      const sectionSlug = toStringValue(item.section_slug);
-      const sectionName = toStringValue(item.section);
-
-      if (sectionSlug) {
-        return (
-          sectionBySlug.get(normalizeLookup(sectionSlug)) ||
-          sectionBySlug.get(normalizeSlug(sectionSlug)) ||
-          null
-        );
-      }
-
-      if (sectionName) {
-        return (
-          sectionByName.get(normalizeLookup(sectionName)) ||
-          sectionBySlug.get(normalizeLookup(sectionName)) ||
-          sectionBySlug.get(normalizeSlug(sectionName)) ||
-          null
-        );
-      }
-
-      return null;
+    function resolveSection(rawSection: string) {
+      if (!rawSection) return null;
+      return (
+        sectionByName.get(normalizeLookup(rawSection)) ||
+        sectionBySlug.get(normalizeLookup(rawSection)) ||
+        sectionBySlug.get(normalizeSlug(rawSection)) ||
+        null
+      );
     }
 
-    function resolveCategory(item: ImportQuestionItem, sectionId: string | null) {
-      const categorySlug = toStringValue(item.category_slug);
-      const categoryName = toStringValue(item.category);
+    function resolveCategory(rawCategory: string, sectionId: string | null) {
+      if (!rawCategory) return null;
 
       const scoped = sectionId
         ? activeCategories.filter((cat) => cat.section_id === sectionId)
         : activeCategories;
 
-      const lookupValues = [
-        categorySlug ? normalizeLookup(categorySlug) : "",
-        categorySlug ? normalizeSlug(categorySlug) : "",
-        categoryName ? normalizeLookup(categoryName) : "",
-        categoryName ? normalizeSlug(categoryName) : "",
-      ].filter(Boolean);
+      const keyLookup = normalizeLookup(rawCategory);
+      const keySlug = normalizeSlug(rawCategory);
 
-      for (const key of lookupValues) {
-        const bySlug = scoped.find(
+      const scopedMatch =
+        scoped.find(
           (cat) =>
-            (cat.slug && normalizeLookup(cat.slug) === key) ||
-            (cat.slug && normalizeSlug(cat.slug) === key)
-        );
-        if (bySlug) return bySlug;
+            normalizeLookup(cat.name) === keyLookup ||
+            (cat.slug && normalizeLookup(cat.slug) === keyLookup) ||
+            (cat.slug && normalizeSlug(cat.slug) === keySlug)
+        ) ?? null;
 
-        const byName = scoped.find((cat) => normalizeLookup(cat.name) === key);
-        if (byName) return byName;
-      }
+      if (scopedMatch) return scopedMatch;
 
-      for (const key of lookupValues) {
-        const globalBySlug = activeCategories.find(
+      return (
+        activeCategories.find(
           (cat) =>
-            (cat.slug && normalizeLookup(cat.slug) === key) ||
-            (cat.slug && normalizeSlug(cat.slug) === key)
-        );
-        if (globalBySlug) return globalBySlug;
-
-        const globalByName = activeCategories.find(
-          (cat) => normalizeLookup(cat.name) === key
-        );
-        if (globalByName) return globalByName;
-      }
-
-      return null;
+            normalizeLookup(cat.name) === keyLookup ||
+            (cat.slug && normalizeLookup(cat.slug) === keyLookup) ||
+            (cat.slug && normalizeSlug(cat.slug) === keySlug)
+        ) ?? null
+      );
     }
 
     const invalidLines: string[] = [];
     const duplicateInsideFileLines: string[] = [];
     const preparedRows: InsertQuestionRow[] = [];
-    const seenQuestionKeys = new Set<string>();
+    const seenQuestionsInFile = new Set<string>();
 
-    payload.questions.forEach((item, index) => {
+    items.forEach((item, index) => {
       const lineNumber = index + 1;
 
-      const questionTextRaw = toStringValue(item.question_text);
-      const answerTextRaw = toStringValue(item.answer_text);
+      const sectionName = firstString(item, ["القسم", "section", "Section"]);
+      const categoryName = firstString(item, ["الفئة", "category", "Category"]);
+      const questionValue = firstString(item, [
+        "السؤال",
+        "question",
+        "question_text",
+      ]);
+      const answerValue = firstString(item, [
+        "الجواب",
+        "answer",
+        "answer_text",
+      ]);
+      const imageValue = firstString(item, [
+        "صورة",
+        "image",
+        "image_url",
+        "question_image_url",
+      ]);
 
-      if (!questionTextRaw || !answerTextRaw) {
-        invalidLines.push(`السطر ${lineNumber}: السؤال أو الجواب فارغ.`);
-        return;
-      }
+      const pointsRaw =
+        item["نقاط السؤال"] ??
+        item["points"] ??
+        item["النقاط"] ??
+        item["Points"] ??
+        0;
 
-      const normalizedQuestionText = normalizeHtml(questionTextRaw);
-      const duplicateKey = normalizeLookup(
-        questionTextRaw.replace(/<[^>]*>/g, " ").trim()
-      );
-
-      if (!duplicateKey) {
-        invalidLines.push(`السطر ${lineNumber}: نص السؤال غير صالح.`);
-        return;
-      }
-
-      if (seenQuestionKeys.has(duplicateKey)) {
-        duplicateInsideFileLines.push(`السطر ${lineNumber}: سؤال مكرر داخل الملف.`);
-        return;
-      }
-
-      seenQuestionKeys.add(duplicateKey);
-
-      const section = resolveSection(item);
-      const category = resolveCategory(item, section?.id ?? null);
-
-      if (!category) {
+      if (!sectionName || !categoryName || !questionValue || !answerValue) {
         invalidLines.push(
-          `السطر ${lineNumber}: تعذر العثور على الفئة أو القسم المرتبط بها.`
+          `السطر ${lineNumber}: القسم أو الفئة أو السؤال أو الجواب ناقص.`
         );
         return;
       }
 
-      const points = toInt(item.points, 0);
+      const plainQuestionKey = normalizeLookup(stripHtml(questionValue));
+
+      if (!plainQuestionKey) {
+        invalidLines.push(`السطر ${lineNumber}: نص السؤال غير صالح.`);
+        return;
+      }
+
+      if (seenQuestionsInFile.has(plainQuestionKey)) {
+        duplicateInsideFileLines.push(`السطر ${lineNumber}: سؤال مكرر داخل الملف.`);
+        return;
+      }
+
+      seenQuestionsInFile.add(plainQuestionKey);
+
+      const points = toInt(pointsRaw, 0);
 
       if (![200, 400, 600].includes(points)) {
         invalidLines.push(
-          `السطر ${lineNumber}: النقاط يجب أن تكون 200 أو 400 أو 600.`
+          `السطر ${lineNumber}: نقاط السؤال يجب أن تكون 200 أو 400 أو 600.`
+        );
+        return;
+      }
+
+      const section = resolveSection(sectionName);
+      if (!section) {
+        invalidLines.push(`السطر ${lineNumber}: القسم "${sectionName}" غير موجود.`);
+        return;
+      }
+
+      const category = resolveCategory(categoryName, section.id);
+      if (!category) {
+        invalidLines.push(
+          `السطر ${lineNumber}: الفئة "${categoryName}" غير موجودة داخل القسم "${sectionName}".`
         );
         return;
       }
@@ -351,22 +367,22 @@ export default async function AdminQuestionsImportPage({
       preparedRows.push({
         category_id: category.id,
         points,
-        is_active: item.is_active !== false,
-        year_tolerance_before: Math.max(0, toInt(item.year_tolerance_before, 0)),
-        year_tolerance_after: Math.max(0, toInt(item.year_tolerance_after, 0)),
-        question_text: normalizedQuestionText,
-        answer_text: normalizeHtml(answerTextRaw),
-        question_image_url: toStringValue(item.question_image_url),
-        question_video_url: toStringValue(item.question_video_url),
-        answer_image_url: toStringValue(item.answer_image_url),
-        answer_video_url: toStringValue(item.answer_video_url),
+        is_active: true,
+        year_tolerance_before: 0,
+        year_tolerance_after: 0,
+        question_text: ensureHtmlParagraph(questionValue),
+        answer_text: ensureHtmlParagraph(answerValue),
+        question_image_url: imageValue,
+        question_video_url: "",
+        answer_image_url: "",
+        answer_video_url: "",
       });
     });
 
     if (preparedRows.length === 0) {
       redirect(
         "/admin/questions/import?error=" +
-          makeSafeRedirectMessage(
+          encodeURIComponent(
             buildMessage([
               "لم يتم العثور على أسئلة صالحة للرفع.",
               ...invalidLines.slice(0, 8),
@@ -390,17 +406,17 @@ export default async function AdminQuestionsImportPage({
       if (error) {
         redirect(
           "/admin/questions/import?error=" +
-            makeSafeRedirectMessage(
+            encodeURIComponent(
               error.message || "فشل التحقق من الأسئلة الموجودة مسبقًا."
             )
         );
       }
 
       for (const row of data ?? []) {
-        const questionText =
+        const text =
           typeof row.question_text === "string" ? row.question_text : "";
-        if (questionText) {
-          existingQuestionTexts.add(questionText);
+        if (text) {
+          existingQuestionTexts.add(text);
         }
       }
     }
@@ -423,9 +439,7 @@ export default async function AdminQuestionsImportPage({
       if (error) {
         redirect(
           "/admin/questions/import?error=" +
-            makeSafeRedirectMessage(
-              error.message || "فشل رفع الدفعة الحالية من الأسئلة."
-            )
+            encodeURIComponent(error.message || "فشل رفع دفعة من الأسئلة.")
         );
       }
 
@@ -433,34 +447,28 @@ export default async function AdminQuestionsImportPage({
     }
 
     const skippedExistingCount = preparedRows.length - rowsToInsert.length;
-    const skippedInvalidCount = invalidLines.length;
-    const skippedInsideFileCount = duplicateInsideFileLines.length;
 
     revalidatePath("/admin/questions");
     revalidatePath("/admin/questions/import");
     revalidatePath("/game/start");
 
-    const successParts = [
+    const successMessage = buildMessage([
       `تم رفع ${insertedCount} سؤال بنجاح.`,
       skippedExistingCount > 0
         ? `تم تخطي ${skippedExistingCount} سؤال موجود مسبقًا.`
         : "",
-      skippedInsideFileCount > 0
-        ? `تم تخطي ${skippedInsideFileCount} سؤال مكرر داخل الملف.`
+      duplicateInsideFileLines.length > 0
+        ? `تم تخطي ${duplicateInsideFileLines.length} سؤال مكرر داخل الملف.`
         : "",
-      skippedInvalidCount > 0
-        ? `تم تخطي ${skippedInvalidCount} سطر غير صالح.`
+      invalidLines.length > 0
+        ? `تم تخطي ${invalidLines.length} سطر غير صالح.`
         : "",
-    ];
+    ]);
 
-    const warningParts = [
+    const warningMessage = buildMessage([
       ...duplicateInsideFileLines.slice(0, 5),
       ...invalidLines.slice(0, 5),
-    ];
-
-    const successMessage = buildMessage(successParts);
-    const warningMessage =
-      warningParts.length > 0 ? buildMessage(warningParts) : "";
+    ]);
 
     const query = new URLSearchParams();
     query.set("success", successMessage);
@@ -470,6 +478,25 @@ export default async function AdminQuestionsImportPage({
 
     redirect(`/admin/questions/import?${query.toString()}`);
   }
+
+  const sampleJson = `[
+  {
+    "القسم": "عام",
+    "الفئة": "أمثال شعبية",
+    "السؤال": "أكمل المثل الشعبي: اللي اختشوا ...",
+    "الجواب": "ماتوا",
+    "نقاط السؤال": 200,
+    "صورة": ""
+  },
+  {
+    "القسم": "عام",
+    "الفئة": "أمثال شعبية",
+    "السؤال": "أكمل المثل الشعبي: اسأل مجرب ولا تسأل ...",
+    "الجواب": "طبيب",
+    "نقاط السؤال": 200,
+    "صورة": ""
+  }
+]`;
 
   return (
     <main
@@ -490,19 +517,22 @@ export default async function AdminQuestionsImportPage({
               </div>
 
               <h1 className="mt-4 text-3xl font-black sm:text-4xl">
-                رفع أسئلة بصيغة JSON
+                رفع بسيط جدًا للأسئلة
               </h1>
               <p className="mt-3 max-w-3xl text-sm leading-8 text-slate-300 sm:text-base">
-                هذا الإصدار يتخطى الأسئلة المكررة داخل الملف أو الموجودة مسبقًا في
-                قاعدة البيانات، ويُكمل رفع باقي الأسئلة بدل إيقاف العملية كاملة.
+                ارفع ملف JSON بسيط يحتوي فقط على:
+                <span className="mx-1 font-bold text-white">القسم</span>،
+                <span className="mx-1 font-bold text-white">الفئة</span>،
+                <span className="mx-1 font-bold text-white">السؤال</span>،
+                <span className="mx-1 font-bold text-white">الجواب</span>،
+                <span className="mx-1 font-bold text-white">نقاط السؤال</span>،
+                <span className="mx-1 font-bold text-white">صورة</span> إن وجدت.
               </p>
             </div>
 
             <div className="rounded-[1.35rem] border border-white/10 bg-white/5 px-4 py-4 text-center">
-              <p className="text-xs text-slate-400">عدد الفئات المتاحة حاليًا</p>
-              <p className="mt-2 text-2xl font-black text-white">
-                {categories.length}
-              </p>
+              <p className="text-xs text-slate-400">الصيغة المطلوبة</p>
+              <p className="mt-2 text-2xl font-black text-white">JSON بسيط</p>
             </div>
           </div>
         </section>
@@ -525,15 +555,11 @@ export default async function AdminQuestionsImportPage({
           </div>
         ) : null}
 
-        <section className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="grid gap-6 lg:grid-cols-[1fr_1fr]">
           <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 sm:p-6">
-            <h2 className="text-2xl font-black text-white">رفع ملف الأسئلة</h2>
+            <h2 className="text-2xl font-black text-white">رفع الملف</h2>
             <p className="mt-2 text-sm leading-8 text-slate-300">
-              ارفع ملف JSON يحتوي على مفتاح باسم{" "}
-              <code className="rounded bg-white/10 px-1.5 py-0.5 text-cyan-200">
-                questions
-              </code>{" "}
-              وبداخله قائمة الأسئلة.
+              اختر ملف JSON ثم اضغط رفع.
             </p>
 
             <form action={importQuestionsAction} className="mt-6 space-y-4">
@@ -559,33 +585,37 @@ export default async function AdminQuestionsImportPage({
             </form>
           </div>
 
-          <div className="space-y-6">
-            <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 sm:p-6">
-              <h3 className="text-xl font-black text-white">شروط مهمة</h3>
-              <ul className="mt-4 space-y-3 text-sm leading-7 text-slate-300">
-                <li>• يجب أن تكون الفئة والقسم موجودين مسبقًا داخل الإدارة.</li>
-                <li>• يتم قبول النقاط: 200 أو 400 أو 600 فقط.</li>
-                <li>• أي سؤال مكرر داخل الملف سيتم تخطيه تلقائيًا.</li>
-                <li>• أي سؤال موجود مسبقًا في قاعدة البيانات سيتم تخطيه تلقائيًا.</li>
-                <li>• باقي الأسئلة الصالحة ستُرفع حتى لو وُجدت أخطاء أو تكرارات.</li>
-              </ul>
-            </section>
+          <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 sm:p-6">
+            <h3 className="text-xl font-black text-white">مثال جاهز</h3>
 
-            <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 sm:p-6">
-              <h3 className="text-xl font-black text-white">الفئات المتوفرة حاليًا</h3>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {categories.map((category) => (
+            <div className="mt-4 rounded-[1.5rem] border border-white/10 bg-slate-950/80 p-4">
+              <pre className="overflow-x-auto whitespace-pre-wrap text-xs leading-7 text-slate-200 sm:text-sm">
+                {sampleJson}
+              </pre>
+            </div>
+
+            <div className="mt-5 rounded-[1.5rem] border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm leading-7 text-cyan-100">
+              الحقول المطلوبة فقط:
+              <div className="mt-2 flex flex-wrap gap-2">
+                {[
+                  "القسم",
+                  "الفئة",
+                  "السؤال",
+                  "الجواب",
+                  "نقاط السؤال",
+                  "صورة",
+                ].map((item) => (
                   <span
-                    key={category.id}
-                    className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-200 sm:text-sm"
+                    key={item}
+                    className="rounded-full border border-cyan-300/20 bg-slate-950/40 px-3 py-1 text-xs font-bold text-cyan-100"
                   >
-                    {category.name}
+                    {item}
                   </span>
                 ))}
               </div>
-            </section>
+            </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="mt-5 flex flex-wrap gap-3">
               <Link
                 href="/admin/questions"
                 className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/10"
