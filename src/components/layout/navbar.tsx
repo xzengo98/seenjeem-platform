@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -27,6 +27,10 @@ export default function Navbar() {
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isNavbarVisible, setIsNavbarVisible] = useState(true);
+  const [isAtTop, setIsAtTop] = useState(true);
+  const lastScrollYRef = useRef(0);
+
   const [authState, setAuthState] = useState<AuthState>({
     loading: true,
     isLoggedIn: false,
@@ -94,6 +98,37 @@ export default function Navbar() {
     setMenuOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    const onScroll = () => {
+      const currentY = window.scrollY;
+      const previousY = lastScrollYRef.current;
+      const scrollingDown = currentY > previousY;
+      const nearTop = currentY <= 12;
+
+      setIsAtTop(nearTop);
+
+      if (nearTop) {
+        setIsNavbarVisible(true);
+      } else if (scrollingDown && currentY - previousY > 4) {
+        setIsNavbarVisible(false);
+        setMenuOpen(false);
+      } else if (!scrollingDown && previousY - currentY > 4) {
+        setIsNavbarVisible(true);
+      }
+
+      lastScrollYRef.current = currentY;
+    };
+
+    lastScrollYRef.current = window.scrollY;
+    onScroll();
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
   async function handleLogout() {
     await supabase.auth.signOut();
     router.refresh();
@@ -138,7 +173,13 @@ export default function Navbar() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/90 backdrop-blur-xl">
+    <header
+      className={[
+        "sticky top-0 z-40 border-b border-white/10 bg-slate-950/90 backdrop-blur-xl transition-transform duration-300",
+        isNavbarVisible ? "translate-y-0" : "-translate-y-full",
+        isAtTop ? "" : "shadow-[0_10px_30px_rgba(0,0,0,0.22)]",
+      ].join(" ")}
+    >
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3 lg:gap-4">
           <button
