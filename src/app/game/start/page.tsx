@@ -57,8 +57,15 @@ type CategoryAvailability = {
   hardCount: number;
 };
 
+type HistoryRow = {
+  question_id: string;
+};
+
+type ServerSupabase = Awaited<ReturnType<typeof getSupabaseServerClient>>;
+
 const REQUIRED_CATEGORY_COUNT = 6;
 const QUESTIONS_PER_GAME_PER_LEVEL = 2;
+const PAGE_SIZE = 1000;
 
 function shuffleArray<T>(items: T[]) {
   const copy = [...items];
@@ -196,6 +203,73 @@ function buildCategoryAvailability(params: {
   return availabilityMap;
 }
 
+async function fetchAllQuestionsPaged(
+  supabase: ServerSupabase,
+  categoryIds: string[]
+) {
+  if (categoryIds.length === 0) {
+    return { data: [] as QuestionCandidate[], error: null };
+  }
+
+  let from = 0;
+  const allRows: QuestionCandidate[] = [];
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("questions")
+      .select("id, category_id, points, created_at")
+      .in("category_id", categoryIds)
+      .eq("is_active", true)
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) {
+      return { data: null as QuestionCandidate[] | null, error };
+    }
+
+    const rows = (data ?? []) as QuestionCandidate[];
+    allRows.push(...rows);
+
+    if (rows.length < PAGE_SIZE) {
+      break;
+    }
+
+    from += PAGE_SIZE;
+  }
+
+  return { data: allRows, error: null };
+}
+
+async function fetchAllUserHistoryPaged(
+  supabase: ServerSupabase,
+  userId: string
+) {
+  let from = 0;
+  const allRows: HistoryRow[] = [];
+
+  while (true) {
+    const { data, error } = await supabase
+      .from("user_question_history")
+      .select("question_id")
+      .eq("user_id", userId)
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) {
+      return { data: null as HistoryRow[] | null, error };
+    }
+
+    const rows = (data ?? []) as HistoryRow[];
+    allRows.push(...rows);
+
+    if (rows.length < PAGE_SIZE) {
+      break;
+    }
+
+    from += PAGE_SIZE;
+  }
+
+  return { data: allRows, error: null };
+}
+
 export default async function GameStartPage({
   searchParams,
 }: {
@@ -298,24 +372,57 @@ export default async function GameStartPage({
       ? "dynamic"
       : "fixed";
 
-  const { data: allQuestionsData } = await supabase
-    .from("questions")
-    .select("id, category_id, points, created_at")
-    .in(
-      "category_id",
-      categories.map((category) => category.id)
-    )
-    .eq("is_active", true);
+  const {
+    data: allQuestionsData,
+    error: allQuestionsError,
+  } = await fetchAllQuestionsPaged(
+    supabase,
+    categories.map((category) => category.id)
+  );
+
+  if (allQuestionsError) {
+    return (
+      <main
+        dir="rtl"
+        className="min-h-screen bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8"
+      >
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-red-500/20 bg-red-500/10 p-6 text-center sm:p-10">
+          <h1 className="text-2xl font-black sm:text-4xl">فشل تحميل الأسئلة</h1>
+          <p className="mt-4 text-sm leading-7 text-red-100 sm:text-lg">
+            {allQuestionsError.message}
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   const allQuestions = (allQuestionsData ?? []) as QuestionCandidate[];
 
   let usedQuestionIds = new Set<string>();
 
   if (selectionMode === "dynamic") {
-    const { data: historyData } = await supabase
-      .from("user_question_history")
-      .select("question_id")
-      .eq("user_id", user.id);
+    const {
+      data: historyData,
+      error: historyError,
+    } = await fetchAllUserHistoryPaged(supabase, user.id);
+
+    if (historyError) {
+      return (
+        <main
+          dir="rtl"
+          className="min-h-screen bg-slate-950 px-4 py-10 text-white sm:px-6 lg:px-8"
+        >
+          <div className="mx-auto max-w-3xl rounded-[2rem] border border-red-500/20 bg-red-500/10 p-6 text-center sm:p-10">
+            <h1 className="text-2xl font-black sm:text-4xl">
+              فشل تحميل سجل الأسئلة
+            </h1>
+            <p className="mt-4 text-sm leading-7 text-red-100 sm:text-lg">
+              {historyError.message}
+            </p>
+          </div>
+        </main>
+      );
+    }
 
     usedQuestionIds = new Set(
       (historyData ?? []).map((item) => String(item.question_id))
@@ -404,11 +511,10 @@ export default async function GameStartPage({
     const shouldPreventRepeat =
       profile.role === "admin" || effectiveTier === "premium";
 
-    const { data: allQuestionsData, error: questionsError } = await supabase
-      .from("questions")
-      .select("id, category_id, points, created_at")
-      .in("category_id", selectedCategoryIds)
-      .eq("is_active", true);
+    const {
+      data: allQuestionsData,
+      error: questionsError,
+    } = await fetchAllQuestionsPaged(supabase, selectedCategoryIds);
 
     if (questionsError) {
       redirect(
@@ -421,10 +527,10 @@ export default async function GameStartPage({
     let usedQuestionIds = new Set<string>();
 
     if (shouldPreventRepeat) {
-      const { data: historyData, error: historyError } = await supabase
-        .from("user_question_history")
-        .select("question_id")
-        .eq("user_id", user.id);
+      const {
+        data: historyData,
+        error: historyError,
+      } = await fetchAllUserHistoryPaged(supabase, user.id);
 
       if (historyError) {
         redirect(
