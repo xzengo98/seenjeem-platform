@@ -12,7 +12,7 @@ const sidebarItems = [
   { label: "الأقسام الرئيسية", href: "/admin/sections" },
   { label: "الفئات", href: "/admin/categories" },
   { label: "الأسئلة", href: "/admin/questions" },
-  { label: "رفع أسئلة بالجملة", href: "/admin/questions/import" },
+  { label: "رفع أسئلة دفعة واحدة", href: "/admin/questions/import" },
   { label: "إضافة قسم جديد", href: "/admin/sections/new" },
   { label: "إضافة فئة جديدة", href: "/admin/categories/new" },
   { label: "إضافة سؤال جديد", href: "/admin/questions/new" },
@@ -63,8 +63,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
               </h1>
 
               <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">
-                من هنا يمكنك إدارة محتوى اللعبة بالكامل بشكل مرتب وواضح، سواء
-                بإضافة الفئات والأسئلة يدويًا أو عبر رفع ملف أسئلة بالجملة.
+                من هنا يمكنك إدارة الموقع بالكامل 
               </p>
             </div>
 
@@ -73,7 +72,7 @@ export default async function AdminLayout({ children }: AdminLayoutProps) {
                 href="/admin/questions/import"
                 className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-orange-400/20 bg-orange-400/10 px-4 py-3 text-center text-sm font-bold text-orange-100 transition hover:bg-orange-400/15"
               >
-                رفع أسئلة بالجملة
+                رفع أسئلة دفعة واحدة
               </Link>
               <Link
                 href="/admin/questions/new"

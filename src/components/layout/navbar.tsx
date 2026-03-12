@@ -121,7 +121,7 @@ export default function Navbar() {
           الباقات
         </Link>
         <Link href="/game/start" className={linkClasses("/game/start")}>
-          اللعب
+         العبة
         </Link>
         {authState.isLoggedIn ? (
           <Link href="/account" className={linkClasses("/account")}>
@@ -225,7 +225,7 @@ export default function Navbar() {
             >
               <img
                 src={LOGO_URL}
-                alt="لمّتنا"
+                alt=""
                 className="h-16 w-auto object-contain"
                 loading="eager"
                 decoding="async"

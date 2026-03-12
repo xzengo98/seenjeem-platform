@@ -44,14 +44,14 @@ export default async function AdminPage() {
     <div className="space-y-6">
       <AdminPageHeader
         title="لوحة التحكم"
-        description="إدارة شاملة للمحتوى الأساسي للعبة مع وصول سريع للأقسام والفئات والأسئلة ورفع الداتا بالجملة."
+        description="إدارة شاملة للمنصة."
         action={
           <>
             <Link
               href="/admin/questions/import"
               className="inline-flex min-h-12 items-center justify-center rounded-2xl border border-orange-400/20 bg-orange-400/10 px-5 py-3 text-sm font-bold text-orange-100 transition hover:bg-orange-400/15"
             >
-              رفع أسئلة بالجملة
+              رفع أسئلة دفعة واحدة
             </Link>
             <Link
               href="/admin/questions/new"
@@ -80,8 +80,7 @@ export default async function AdminPage() {
             انتقل بسرعة إلى القسم المطلوب
           </h3>
           <p className="mt-3 text-sm leading-7 text-slate-300 sm:text-base sm:leading-8">
-            تم ترتيب أهم الروابط في بطاقات واضحة لتسهيل الوصول إليها من الهاتف
-            أو سطح المكتب.
+            
           </p>
         </div>
 

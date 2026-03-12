@@ -4,7 +4,7 @@ import Navbar from "@/components/layout/navbar";
 
 export const metadata: Metadata = {
   title: {
-    default: "لمّتنا",
+    default: "منصة لمّتنا ",
     template: "%s | لمّتنا",
   },
   description:
