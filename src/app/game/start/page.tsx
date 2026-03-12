@@ -58,6 +58,7 @@ type CategoryAvailability = {
 };
 
 const REQUIRED_CATEGORY_COUNT = 6;
+const QUESTIONS_PER_GAME_PER_LEVEL = 2;
 
 function shuffleArray<T>(items: T[]) {
   const copy = [...items];
@@ -68,6 +69,18 @@ function shuffleArray<T>(items: T[]) {
   }
 
   return copy;
+}
+
+function calculateAvailableGames(
+  easyCount: number,
+  mediumCount: number,
+  hardCount: number
+) {
+  return Math.min(
+    Math.floor(easyCount / QUESTIONS_PER_GAME_PER_LEVEL),
+    Math.floor(mediumCount / QUESTIONS_PER_GAME_PER_LEVEL),
+    Math.floor(hardCount / QUESTIONS_PER_GAME_PER_LEVEL)
+  );
 }
 
 function buildSessionQuestions(params: {
@@ -116,9 +129,9 @@ function buildSessionQuestions(params: {
         });
       }
 
-      const picked = pool.slice(0, 2);
+      const picked = pool.slice(0, QUESTIONS_PER_GAME_PER_LEVEL);
 
-      if (picked.length < 2) {
+      if (picked.length < QUESTIONS_PER_GAME_PER_LEVEL) {
         return {
           error: shouldRandomize
             ? `الفئة "${categoryName}" لا تحتوي على عدد كافٍ من أسئلة ${slotGroup.points} غير المستخدمة.`
@@ -164,15 +177,15 @@ function buildCategoryAvailability(params: {
     const mediumCount = filtered.filter((question) => question.points === 400).length;
     const hardCount = filtered.filter((question) => question.points === 600).length;
 
-    const availableGames = Math.min(
-      Math.floor(easyCount / 2),
-      Math.floor(mediumCount / 2),
-      Math.floor(hardCount / 2)
+    const availableGames = calculateAvailableGames(
+      easyCount,
+      mediumCount,
+      hardCount
     );
 
     availabilityMap[category.id] = {
       availableGames,
-      isSelectable: mode === "fixed" ? availableGames >= 1 : availableGames > 0,
+      isSelectable: availableGames >= 1,
       mode,
       easyCount,
       mediumCount,
@@ -425,6 +438,35 @@ export default async function GameStartPage({
       );
     }
 
+    const selectedCategories = categories.filter((category) =>
+      selectedCategoryIds.includes(category.id)
+    );
+
+    const selectedAvailability = buildCategoryAvailability({
+      categories: selectedCategories,
+      questions: allQuestions,
+      usedQuestionIds,
+      mode: shouldPreventRepeat ? "dynamic" : "fixed",
+    });
+
+    const invalidCategory = selectedCategoryIds.find((categoryId) => {
+      const availability = selectedAvailability[categoryId];
+      return !availability || availability.availableGames < 1;
+    });
+
+    if (invalidCategory) {
+      const categoryName =
+        categories.find((item) => item.id === invalidCategory)?.name ??
+        "فئة غير معروفة";
+
+      redirect(
+        "/game/start?error=" +
+          encodeURIComponent(
+            `الفئة "${categoryName}" لا تحتوي حاليًا على عدد كافٍ من الأسئلة لبدء لعبة كاملة.`
+          )
+      );
+    }
+
     const built = buildSessionQuestions({
       selectedCategoryIds,
       allQuestions,
@@ -555,57 +597,53 @@ export default async function GameStartPage({
   }
 
   return (
-    <main dir="rtl" className="min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 pb-10 pt-6 sm:px-6 lg:gap-8 lg:px-8 lg:pb-16 lg:pt-10">
-        <section className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 px-5 py-6 shadow-2xl shadow-slate-950/40 sm:px-8 sm:py-8 lg:px-10 lg:py-10">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(34,211,238,0.16),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(249,115,22,0.14),transparent_30%)]" />
-
-          <div className="relative flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-            <div className="max-w-3xl">
-              <div className="flex flex-wrap gap-2 text-xs sm:text-sm">
-                <span className="rounded-full border border-cyan-400/30 bg-cyan-400/10 px-3 py-1.5 text-cyan-200">
+    <main
+      dir="rtl"
+      className="min-h-screen bg-slate-950 px-4 py-6 text-white sm:px-6 lg:px-8 lg:py-10"
+    >
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div className="rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,#020617_0%,#07143a_50%,#020617_100%)] p-5 sm:p-7">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <div className="flex flex-wrap gap-2">
+                <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-xs font-bold text-cyan-200 sm:text-sm">
                   إعداد لعبة جديدة
                 </span>
-                <span className="rounded-full border border-orange-400/30 bg-orange-400/10 px-3 py-1.5 text-orange-100">
+                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-slate-300 sm:text-sm">
                   اختر 6 فئات بالضبط
                 </span>
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-slate-300">
+                <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs font-bold text-emerald-200 sm:text-sm">
                   {selectionMode === "dynamic"
                     ? "اسئلة بدون تكرار"
                     : "أسئلة ثابتة"}
                 </span>
               </div>
 
-              <h1 className="mt-4 text-2xl font-black leading-tight sm:text-4xl lg:text-5xl">
+              <h1 className="mt-4 text-3xl font-black sm:text-4xl">
                 جهّز اللعبة خلال دقائق
               </h1>
-
-              <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300 sm:text-lg sm:leading-8">
+              <p className="mt-3 max-w-2xl text-sm leading-8 text-slate-300 sm:text-base">
                 اختر اسم اللعبة، أضف أسماء الفريقين، ثم حدّد ست فئات لتبدأ
+                الجولة مباشرة.
               </p>
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:w-auto">
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4 text-center">
-                <p className="text-xs text-slate-400 sm:text-sm">
-                  الألعاب المتبقية
-                </p>
-                <p className="mt-2 text-2xl font-black text-white sm:text-3xl">
+              <div className="rounded-[1.35rem] border border-white/10 bg-white/5 px-4 py-4 text-center">
+                <p className="text-xs text-slate-400">الألعاب المتبقية</p>
+                <p className="mt-2 text-2xl font-black text-white">
                   {profile.games_remaining ?? 0}
                 </p>
               </div>
-
-              <div className="rounded-[1.5rem] border border-white/10 bg-white/5 px-4 py-4 text-center">
-                <p className="text-xs text-slate-400 sm:text-sm">
-                  الفئات المطلوبة
-                </p>
-                <p className="mt-2 text-2xl font-black text-cyan-300 sm:text-3xl">
+              <div className="rounded-[1.35rem] border border-white/10 bg-white/5 px-4 py-4 text-center">
+                <p className="text-xs text-slate-400">الفئات المطلوبة</p>
+                <p className="mt-2 text-2xl font-black text-white">
                   {REQUIRED_CATEGORY_COUNT}
                 </p>
               </div>
             </div>
           </div>
-        </section>
+        </div>
 
         {params.error ? (
           <div className="rounded-[1.5rem] border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm text-red-100 sm:text-base">

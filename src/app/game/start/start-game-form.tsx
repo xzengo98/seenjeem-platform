@@ -92,31 +92,35 @@ function getSectionTheme(slug: string) {
   );
 }
 
+function formatAvailableGamesLabel(count: number) {
+  if (count <= 0) return "غير متاحة";
+  if (count === 1) return "متبقية لعبة واحدة";
+  if (count === 2) return "متبقي لعبتان";
+  if (count >= 3 && count <= 10) return `متبقي ${count} ألعاب`;
+  return `متبقي ${count} لعبة`;
+}
+
 function getAvailabilityBadge(availability: CategoryAvailability) {
   if (!availability.isSelectable) {
     return {
       text: "غير متاحة",
-      className: "border-red-500/20 bg-red-500/15 text-red-200",
+      className:
+        "border-red-500/30 bg-slate-950/95 text-red-200 shadow-lg shadow-red-900/20",
     };
   }
 
   if (availability.mode === "fixed") {
     return {
-      text: "متاحة",
-      className: "border-white/15 bg-white/10 text-white",
-    };
-  }
-
-  if (availability.availableGames === 1) {
-    return {
-      text: "باقي لعبة واحدة",
-      className: "border-emerald-500/20 bg-emerald-500/15 text-emerald-200",
+      text: "متاحة الآن",
+      className:
+        "border-white/20 bg-slate-950/95 text-white shadow-lg shadow-black/20",
     };
   }
 
   return {
-    text: `باقي ${availability.availableGames} لعبة`,
-    className: "border-emerald-500/20 bg-emerald-500/15 text-emerald-200",
+    text: formatAvailableGamesLabel(availability.availableGames),
+    className:
+      "border-emerald-400/30 bg-slate-950/95 text-emerald-200 shadow-lg shadow-emerald-900/20",
   };
 }
 
@@ -311,7 +315,7 @@ export default function StartGameForm({
                     <span className="font-bold text-white">
                       عشوائي بدون تكرار
                     </span>
-                    . يظهر على كل فئة فقط عدد الألعاب المتبقية.
+                    . يظهر على كل فئة عدد الألعاب المتبقية بشكل واضح.
                   </>
                 ) : (
                   <>
@@ -365,7 +369,7 @@ export default function StartGameForm({
               اختر الفئات المناسبة
             </h2>
             <p className="mt-2 text-sm leading-7 text-slate-300 sm:text-base">
-              يظهر على كل بطاقة فقط عدد الألعاب المتبقية أو حالة توفر الفئة.
+              يظهر على كل بطاقة عدد الألعاب المتبقية بخلفية واضحة وغير شفافة.
             </p>
           </div>
 
@@ -565,7 +569,7 @@ function CategoryCard({
           ? "border-cyan-400 bg-cyan-400/10 shadow-[0_0_0_1px_rgba(34,211,238,0.2)]"
           : availability.isSelectable
           ? `border-white/10 bg-slate-950/70 ${theme.ring}`
-          : "border-red-500/15 bg-slate-950/60 opacity-85"
+          : "border-red-500/15 bg-slate-950/60 opacity-90"
       }`}
     >
       <button
@@ -578,13 +582,13 @@ function CategoryCard({
       </button>
 
       <div
-        className={`absolute left-3 top-3 z-20 rounded-full border px-2.5 py-1 text-[11px] font-bold ${badge.className}`}
+        className={`absolute left-3 top-3 z-20 max-w-[68%] rounded-full border px-3 py-1.5 text-[11px] font-bold leading-none backdrop-blur-sm sm:text-xs ${badge.className}`}
       >
         {badge.text}
       </div>
 
       {active ? (
-        <div className="absolute left-3 bottom-[5.25rem] z-20 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-bold text-white">
+        <div className="absolute left-3 bottom-[5.25rem] z-20 rounded-full bg-emerald-500 px-2.5 py-1 text-[11px] font-bold text-white shadow-lg">
           تم الاختيار
         </div>
       ) : null}
