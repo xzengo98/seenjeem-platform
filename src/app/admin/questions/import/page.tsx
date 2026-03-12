@@ -714,9 +714,7 @@ export default async function AdminQuestionsImportPage({
               </h1>
 
               <p className="mt-3 max-w-3xl text-sm leading-8 text-slate-300 sm:text-base">
-                صفحة مبنية من الصفر، تدعم الصيغة العربية المبسطة وصيغة 1199،
-                وتتعامل مع الصور والفيديو بشكل صحيح، وتتخطى المكرر داخل الملف
-                أو الموجود مسبقًا في قاعدة البيانات.
+           صفحة لرفع الملفات دفعة واحدة 
               </p>
             </div>
 
@@ -800,7 +798,7 @@ export default async function AdminQuestionsImportPage({
             </div>
 
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 sm:p-6">
-              <h3 className="text-xl font-black text-white">مثال صيغة 1199</h3>
+              <h3 className="text-xl font-black text-white">مثال صيغة اخر مقبول</h3>
 
               <div className="mt-4 rounded-[1.5rem] border border-white/10 bg-slate-950/80 p-4">
                 <pre className="overflow-x-auto whitespace-pre-wrap text-xs leading-7 text-slate-200 sm:text-sm">
@@ -812,8 +810,7 @@ export default async function AdminQuestionsImportPage({
             <div className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-5 sm:p-6">
               <h3 className="text-xl font-black text-white">تنبيه مهم</h3>
               <p className="mt-3 text-sm leading-8 text-slate-300">
-                إذا لم توجد صورة أو فيديو، سيتم حفظ حقول الوسائط كـ null وليس
-                كنص فارغ، وهذا مهم جدًا لتفادي مشاكل check constraint.
+               إذا لم توجد صورة أو فيديو،ليس هنالك اي مشاكل
               </p>
 
               <div className="mt-5 flex flex-wrap gap-3">

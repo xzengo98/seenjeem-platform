@@ -349,15 +349,15 @@ export default function HomePage() {
                 مرحبًا بك في لمّتنا
               </p>
               <h1 className="mt-3 text-3xl font-black leading-tight sm:text-4xl lg:text-6xl">
-                منصة احترافية
+                منصة عربية
                 <span className="block text-cyan-300">
                   متخصصة في ألعاب الأسئلة والمسابقات
                 </span>
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-8 text-slate-300 sm:text-base">
-                صُممت لمّتنا لتقديم تجربة عرض مرتبة وواضحة وسريعة، سواء للمسابقات
-                المدرسية أو الفعاليات الخاصة أو الجولات الترفيهية بين فريقين، مع
-                إدارة مرنة للأقسام والفئات والأسئلة.
+                صُممت لمّتنا لتقديم تجربة عرض سهلة وبسيطة وواضحة وسريعة، سواء للمسابقات
+                المدرسية أو التجمعات أو الجولات الترفيهية بين فريقين مختلفين، مع
+                إدارة مرنة وسهلة للأقسام والفئات .
               </p>
             </div>
 
@@ -419,7 +419,7 @@ export default function HomePage() {
               />
               <HeroMiniCard
                 title="إدارة ذكية"
-                description="أضف الأقسام والفئات والأسئلة وعدّلها بسرعة من لوحة التحكم."
+                description="أضف الأقسام والفئات وعدّلها كما تريد."
               />
               <HeroMiniCard
                 title="تشغيل سريع"
@@ -552,7 +552,7 @@ export default function HomePage() {
               </h3>
               <p className="mt-2 max-w-2xl text-[11px] leading-6 text-slate-300 sm:text-sm sm:leading-7">
                 منصة عربية للمسابقات وألعاب الأسئلة، مصممة لتقديم تجربة جميلة،
-                منظمة، وسهلة الاستخدام على الهاتف والشاشات الكبيرة.
+                منظمة.
               </p>
             </div>
 
@@ -573,14 +573,9 @@ export default function HomePage() {
                 href="/game/start"
                 className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-bold text-slate-200 transition hover:bg-white/10 hover:text-white sm:px-4 sm:text-sm"
               >
-                اللعب
+                اللعبة
               </Link>
-              <Link
-                href="/login"
-                className="rounded-full border border-white/10 bg-white/5 px-3 py-2 text-[11px] font-bold text-slate-200 transition hover:bg-white/10 hover:text-white sm:px-4 sm:text-sm"
-              >
-                تسجيل الدخول
-              </Link>
+              
             </div>
           </div>
 
