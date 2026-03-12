@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -19,11 +19,12 @@ type AuthState = {
   username: string | null;
 };
 
+const LOGO_URL = "https://k.top4top.io/p_3722mj2o21.png";
+
 export default function Navbar() {
   const router = useRouter();
   const pathname = usePathname();
   const supabase = useMemo(() => getSupabaseBrowserClient(), []);
-
   const [menuOpen, setMenuOpen] = useState(false);
   const [authState, setAuthState] = useState<AuthState>({
     loading: true,
@@ -33,7 +34,7 @@ export default function Navbar() {
     username: null,
   });
 
-  async function loadUser() {
+  const loadUser = useCallback(async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -64,31 +65,34 @@ export default function Navbar() {
       gamesRemaining: typedProfile?.games_remaining ?? 0,
       username: typedProfile?.username ?? null,
     });
-  }
+  }, [supabase]);
 
   useEffect(() => {
-    loadUser();
+    void loadUser();
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(() => {
-      loadUser();
+      void loadUser();
       router.refresh();
     });
 
-    const onFocus = () => loadUser();
+    const onFocus = () => {
+      void loadUser();
+    };
+
     window.addEventListener("focus", onFocus);
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener("focus", onFocus);
     };
-  }, [router, supabase]);
+  }, [loadUser, router, supabase]);
 
   useEffect(() => {
-    loadUser();
+    void loadUser();
     setMenuOpen(false);
-  }, [pathname]);
+  }, [pathname, loadUser]);
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -96,150 +100,173 @@ export default function Navbar() {
     router.push("/");
   }
 
-  const NavLinks = () => (
-    <>
-      <Link href="/" className="transition hover:text-white">
-        الرئيسية
-      </Link>
-      <Link href="/pricing" className="transition hover:text-white">
-        الباقات
-      </Link>
-      <Link href="/game/start" className="transition hover:text-white">
-        اللعب
-      </Link>
-      {authState.isLoggedIn ? (
-        <Link href="/account" className="transition hover:text-white">
-          حسابي
+  function linkClasses(href: string) {
+    const isActive = pathname === href;
+    return [
+      "rounded-2xl px-3 py-2 text-sm font-bold transition",
+      isActive
+        ? "bg-cyan-400/10 text-cyan-300"
+        : "text-slate-200 hover:bg-white/5 hover:text-white",
+    ].join(" ");
+  }
+
+  function NavLinks() {
+    return (
+      <>
+        <Link href="/" className={linkClasses("/")}>
+          الرئيسية
         </Link>
-      ) : null}
-      {authState.isAdmin ? (
-        <Link href="/admin" className="transition hover:text-white">
-          الإدارة
+        <Link href="/pricing" className={linkClasses("/pricing")}>
+          الباقات
         </Link>
-      ) : null}
-    </>
-  );
+        <Link href="/game/start" className={linkClasses("/game/start")}>
+          اللعب
+        </Link>
+        {authState.isLoggedIn ? (
+          <Link href="/account" className={linkClasses("/account")}>
+            حسابي
+          </Link>
+        ) : null}
+        {authState.isAdmin ? (
+          <Link href="/admin" className={linkClasses("/admin")}>
+            الإدارة
+          </Link>
+        ) : null}
+      </>
+    );
+  }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/95 backdrop-blur">
-      <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="text-2xl font-black text-cyan-400 md:text-3xl">
-            SeenJeem
-          </Link>
-
-          <nav className="hidden items-center gap-6 text-sm font-semibold text-slate-300 lg:flex">
-            <NavLinks />
-          </nav>
-
-          <div className="hidden items-center gap-3 lg:flex">
-            {authState.loading ? (
-              <div className="rounded-2xl border border-white/10 px-4 py-2 text-sm text-slate-400">
-                جارٍ التحميل...
-              </div>
-            ) : authState.isLoggedIn ? (
-              <>
-                <div className="rounded-2xl border border-white/10 px-4 py-2 text-sm text-slate-300">
-                  {authState.username || "مستخدم"} • الألعاب: {authState.gamesRemaining}
-                </div>
-
-                <Link
-                  href="/game/start"
-                  className="rounded-2xl bg-cyan-400 px-5 py-2 font-bold text-slate-950"
-                >
-                  ابدأ الآن
-                </Link>
-
-                <button
-                  type="button"
-                  onClick={handleLogout}
-                  className="rounded-2xl border border-white/10 px-5 py-2 font-semibold text-slate-200 transition hover:bg-white/5"
-                >
-                  تسجيل الخروج
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/register"
-                  className="rounded-2xl bg-cyan-400 px-5 py-2 font-bold text-slate-950"
-                >
-                  إنشاء حساب
-                </Link>
-
-                <Link
-                  href="/login"
-                  className="rounded-2xl border border-white/10 px-5 py-2 font-semibold text-slate-200 transition hover:bg-white/5"
-                >
-                  تسجيل الدخول
-                </Link>
-              </>
-            )}
-          </div>
-
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/90 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-3 lg:gap-4">
           <button
             type="button"
             onClick={() => setMenuOpen((prev) => !prev)}
-            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 text-slate-200 lg:hidden"
+            className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-200 lg:hidden"
             aria-label="فتح القائمة"
           >
-            <span className="text-xl">☰</span>
+            ☰
           </button>
+
+          <Link
+            href="/"
+            className="flex items-center gap-2 rounded-2xl transition hover:opacity-95 sm:gap-3"
+          >
+            <img
+              src={LOGO_URL}
+              alt="لمّتنا"
+              className="h-10 w-auto object-contain sm:h-11 md:h-12 lg:h-12"
+              loading="eager"
+              decoding="async"
+            />
+            <span className="hidden text-lg font-black tracking-tight text-white sm:block md:text-xl">
+              لمّتنا
+            </span>
+          </Link>
         </div>
 
-        {menuOpen ? (
-          <div className="mt-3 rounded-[1.5rem] border border-white/10 bg-white/5 p-4 lg:hidden">
-            <div className="flex flex-col gap-4 text-sm font-semibold text-slate-300">
-              <NavLinks />
+        <nav className="hidden items-center gap-1 lg:flex">
+          <NavLinks />
+        </nav>
 
-              <div className="border-t border-white/10 pt-4">
-                {authState.loading ? (
-                  <div className="rounded-2xl border border-white/10 px-4 py-3 text-center text-slate-400">
-                    جارٍ التحميل...
-                  </div>
-                ) : authState.isLoggedIn ? (
-                  <div className="space-y-3">
-                    <div className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-slate-300">
-                      {authState.username || "مستخدم"} • الألعاب: {authState.gamesRemaining}
-                    </div>
-
-                    <Link
-                      href="/game/start"
-                      className="block rounded-2xl bg-cyan-400 px-4 py-3 text-center font-bold text-slate-950"
-                    >
-                      ابدأ الآن
-                    </Link>
-
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="w-full rounded-2xl border border-white/10 px-4 py-3 font-semibold text-slate-200"
-                    >
-                      تسجيل الخروج
-                    </button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <Link
-                      href="/register"
-                      className="block rounded-2xl bg-cyan-400 px-4 py-3 text-center font-bold text-slate-950"
-                    >
-                      إنشاء حساب
-                    </Link>
-
-                    <Link
-                      href="/login"
-                      className="block rounded-2xl border border-white/10 px-4 py-3 text-center font-semibold text-slate-200"
-                    >
-                      تسجيل الدخول
-                    </Link>
-                  </div>
-                )}
+        <div className="hidden items-center gap-2 lg:flex">
+          {authState.loading ? (
+            <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300">
+              جارٍ التحميل...
+            </div>
+          ) : authState.isLoggedIn ? (
+            <>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-200">
+                {authState.username || "مستخدم"} • الألعاب: {authState.gamesRemaining}
               </div>
+
+              <Link
+                href="/game/start"
+                className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-cyan-400 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-cyan-300"
+              >
+                ابدأ الآن
+              </Link>
+
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-sm font-bold text-red-200 transition hover:bg-red-500/15"
+              >
+                تسجيل الخروج
+              </button>
+            </>
+          ) : (
+            <>
+              <Link
+                href="/register"
+                className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-cyan-400 px-4 py-2 text-sm font-black text-slate-950 transition hover:bg-cyan-300"
+              >
+                إنشاء حساب
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-bold text-white transition hover:bg-white/10"
+              >
+                تسجيل الدخول
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+
+      {menuOpen ? (
+        <div className="border-t border-white/10 bg-slate-950/95 px-4 py-4 lg:hidden sm:px-6">
+          <div className="flex flex-col gap-2">
+            <NavLinks />
+
+            <div className="mt-3 border-t border-white/10 pt-3">
+              {authState.loading ? (
+                <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-300">
+                  جارٍ التحميل...
+                </div>
+              ) : authState.isLoggedIn ? (
+                <div className="space-y-2">
+                  <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
+                    {authState.username || "مستخدم"} • الألعاب: {authState.gamesRemaining}
+                  </div>
+
+                  <Link
+                    href="/game/start"
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl bg-cyan-400 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-cyan-300"
+                  >
+                    ابدأ الآن
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-200 transition hover:bg-red-500/15"
+                  >
+                    تسجيل الخروج
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Link
+                    href="/register"
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl bg-cyan-400 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-cyan-300"
+                  >
+                    إنشاء حساب
+                  </Link>
+
+                  <Link
+                    href="/login"
+                    className="inline-flex min-h-11 w-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+                  >
+                    تسجيل الدخول
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
-        ) : null}
-      </div>
+        </div>
+      ) : null}
     </header>
   );
 }
