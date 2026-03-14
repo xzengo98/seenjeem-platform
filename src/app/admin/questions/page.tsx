@@ -1,33 +1,55 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import AdminEmptyState from "@/components/admin/admin-empty-state";
+import AdminPageHeader from "@/components/admin/admin-page-header";
 import { getSupabaseServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
+type SearchParams = Promise<{
+  q?: string;
+  section?: string;
+  category?: string;
+}>;
+
+type SectionRow = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+type CategoryRow = {
+  id: string;
+  name: string;
+  slug: string;
+  section_id: string | null;
+};
+
 type CategorySectionRelation =
   | {
-      id: string;
-      name: string;
-      slug: string;
+      id?: string;
+      name?: string;
+      slug?: string;
     }
   | {
-      id: string;
-      name: string;
-      slug: string;
+      id?: string;
+      name?: string;
+      slug?: string;
     }[]
   | null;
 
 type CategoryRelation =
   | {
-      id: string;
-      name: string;
-      slug: string;
+      id?: string;
+      name?: string;
+      slug?: string;
       category_sections?: CategorySectionRelation;
     }
   | {
-      id: string;
-      name: string;
-      slug: string;
+      id?: string;
+      name?: string;
+      slug?: string;
       category_sections?: CategorySectionRelation;
     }[]
   | null;
@@ -39,20 +61,8 @@ type QuestionRow = {
   points: number;
   is_active: boolean;
   is_used: boolean;
+  category_id: string | null;
   categories: CategoryRelation;
-};
-
-type CategoryOption = {
-  id: string;
-  name: string;
-  slug: string;
-  section_id: string | null;
-};
-
-type SectionOption = {
-  id: string;
-  name: string;
-  slug: string;
 };
 
 function getCategoryObject(categories: CategoryRelation) {
@@ -81,7 +91,7 @@ function stripHtml(value: string | null) {
   return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function truncateText(value: string, maxLength = 140) {
+function truncateText(value: string, maxLength = 160) {
   if (value.length <= maxLength) return value;
   return `${value.slice(0, maxLength)}...`;
 }
@@ -89,6 +99,7 @@ function truncateText(value: string, maxLength = 140) {
 function decodeHtml(value: string) {
   return value
     .replaceAll("&quot;", '"')
+    .replaceAll("&#039;", "'")
     .replaceAll("&#39;", "'")
     .replaceAll("&amp;", "&")
     .replaceAll("&lt;", "<")
@@ -120,44 +131,107 @@ function buildReturnTo(params: {
 async function deleteQuestion(formData: FormData) {
   "use server";
 
-  const id = String(formData.get("id") ?? "");
+  const id = String(formData.get("id") ?? "").trim();
+  const returnTo =
+    String(formData.get("returnTo") ?? "").trim() || "/admin/questions";
+
+  if (!id) {
+    redirect(returnTo);
+  }
+
   const supabase = await getSupabaseServerClient();
 
   await supabase.from("questions").delete().eq("id", id);
 
   revalidatePath("/admin/questions");
+  revalidatePath("/admin");
+  revalidatePath("/game/start");
   revalidatePath("/game/board");
+
+  redirect(returnTo);
 }
 
 export default async function AdminQuestionsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{
-    q?: string;
-    section?: string;
-    category?: string;
-  }>;
+  searchParams: SearchParams;
 }) {
   try {
-    const resolvedSearchParams = searchParams ? await searchParams : {};
-    const q = resolvedSearchParams?.q?.trim() ?? "";
-    const sectionId = resolvedSearchParams?.section?.trim() ?? "";
-    const categoryId = resolvedSearchParams?.category?.trim() ?? "";
-    const returnTo = buildReturnTo({ q, sectionId, categoryId });
+    const params = await searchParams;
+    const searchQuery = String(params.q ?? "").trim();
+    const selectedSection = String(params.section ?? "").trim();
+    const selectedCategory = String(params.category ?? "").trim();
+
+    const hasFilters =
+      searchQuery.length > 0 ||
+      selectedSection.length > 0 ||
+      selectedCategory.length > 0;
+
+    const returnTo = buildReturnTo({
+      q: searchQuery,
+      sectionId: selectedSection,
+      categoryId: selectedCategory,
+    });
 
     const supabase = await getSupabaseServerClient();
 
-    const [{ data: sectionsData }, { data: categoriesData }, { data, error }] =
-      await Promise.all([
-        supabase
-          .from("category_sections")
-          .select("id, name, slug")
-          .order("sort_order", { ascending: true }),
-        supabase
-          .from("categories")
-          .select("id, name, slug, section_id")
-          .order("sort_order", { ascending: true }),
-        supabase
+    const [
+      { data: sectionsData, error: sectionsError },
+      { data: categoriesData, error: categoriesError },
+    ] = await Promise.all([
+      supabase
+        .from("category_sections")
+        .select("id, name, slug")
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("categories")
+        .select("id, name, slug, section_id")
+        .eq("is_active", true)
+        .order("sort_order", { ascending: true }),
+    ]);
+
+    if (sectionsError) {
+      return (
+        <div className="rounded-3xl border border-red-500/20 bg-red-500/10 p-6 text-red-100">
+          فشل تحميل الأقسام: {sectionsError.message}
+        </div>
+      );
+    }
+
+    if (categoriesError) {
+      return (
+        <div className="rounded-3xl border border-red-500/20 bg-red-500/10 p-6 text-red-100">
+          فشل تحميل الفئات: {categoriesError.message}
+        </div>
+      );
+    }
+
+    const sections = (sectionsData ?? []) as SectionRow[];
+    const categories = (categoriesData ?? []) as CategoryRow[];
+
+    const filteredCategoriesForDropdown = selectedSection
+      ? categories.filter((category) => category.section_id === selectedSection)
+      : categories;
+
+    let questions: QuestionRow[] = [];
+
+    if (hasFilters) {
+      let allowedCategoryIds: string[] | null = null;
+
+      if (selectedSection) {
+        allowedCategoryIds = categories
+          .filter((category) => category.section_id === selectedSection)
+          .map((category) => category.id);
+      }
+
+      if (selectedCategory) {
+        allowedCategoryIds = [selectedCategory];
+      }
+
+      if (allowedCategoryIds && allowedCategoryIds.length === 0) {
+        questions = [];
+      } else {
+        let query = supabase
           .from("questions")
           .select(`
             id,
@@ -166,6 +240,7 @@ export default async function AdminQuestionsPage({
             points,
             is_active,
             is_used,
+            category_id,
             categories (
               id,
               name,
@@ -177,58 +252,39 @@ export default async function AdminQuestionsPage({
               )
             )
           `)
-          .order("created_at", { ascending: false }),
-      ]);
+          .order("created_at", { ascending: false })
+          .limit(150);
 
-    if (error) {
-      return (
-        <div className="rounded-3xl border border-red-500/20 bg-red-500/10 p-6 text-red-100">
-          فشل تحميل الأسئلة: {error.message}
-        </div>
-      );
+        if (searchQuery) {
+          query = query.or(
+            `question_text.ilike.%${searchQuery}%,answer_text.ilike.%${searchQuery}%`,
+          );
+        }
+
+        if (allowedCategoryIds && allowedCategoryIds.length > 0) {
+          query = query.in("category_id", allowedCategoryIds);
+        }
+
+        const { data, error } = await query;
+
+        if (error) {
+          return (
+            <div className="rounded-3xl border border-red-500/20 bg-red-500/10 p-6 text-red-100">
+              فشل تحميل الأسئلة: {error.message}
+            </div>
+          );
+        }
+
+        questions = (data ?? []) as unknown as QuestionRow[];
+      }
     }
-
-    const sections = (sectionsData ?? []) as SectionOption[];
-    const categories = (categoriesData ?? []) as CategoryOption[];
-
-    const questions = ((data ?? []) as unknown as QuestionRow[]).filter(
-      (question) => {
-        const category = getCategoryObject(question.categories);
-        const section = getSectionObject(category?.category_sections ?? null);
-
-        const matchesSearch =
-          !q ||
-          stripHtml(question.question_text)
-            .toLowerCase()
-            .includes(q.toLowerCase()) ||
-          stripHtml(question.answer_text).toLowerCase().includes(q.toLowerCase());
-
-        const matchesSection = !sectionId || section?.id === sectionId;
-        const matchesCategory = !categoryId || category?.id === categoryId;
-
-        return matchesSearch && matchesSection && matchesCategory;
-      },
-    );
-
-    const filteredCategories = sectionId
-      ? categories.filter((category) => category.section_id === sectionId)
-      : categories;
 
     return (
       <div className="space-y-6">
-        <section className="rounded-[2rem] border border-white/10 bg-[#071126] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.3)]">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <div className="text-cyan-300">إدارة المحتوى</div>
-              <h1 className="mt-2 text-4xl font-black text-white">
-                إدارة الأسئلة
-              </h1>
-              <p className="mt-3 text-lg leading-8 text-white/75">
-                فلتر الأسئلة بسرعة، راقب الصور داخل السؤال والإجابة، وعدّل أو احذف
-                بدون فقدان الفلترة الحالية.
-              </p>
-            </div>
-
+        <AdminPageHeader
+          title="إدارة الأسئلة"
+          description="فلتر الأسئلة بسرعة، راقب الصور داخل السؤال والإجابة، وعدّل أو احذف بدون فقدان الفلترة الحالية."
+          action={
             <div className="flex flex-wrap gap-3">
               <Link
                 href="/admin/questions/new"
@@ -244,8 +300,8 @@ export default async function AdminQuestionsPage({
                 رفع أسئلة بالجملة
               </Link>
             </div>
-          </div>
-        </section>
+          }
+        />
 
         <section className="rounded-[2rem] border border-white/10 bg-[#071126] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.3)]">
           <form method="GET" className="space-y-4">
@@ -257,8 +313,8 @@ export default async function AdminQuestionsPage({
                 <input
                   type="text"
                   name="q"
-                  defaultValue={q}
-                  placeholder="اكتب جزءًا من السؤال..."
+                  defaultValue={searchQuery}
+                  placeholder="اكتب جزءًا من السؤال أو الإجابة..."
                   className="h-14 w-full rounded-2xl border border-white/10 bg-[#030b22] px-4 text-white outline-none placeholder:text-white/35 focus:border-cyan-400/40"
                 />
               </div>
@@ -269,7 +325,7 @@ export default async function AdminQuestionsPage({
                 </label>
                 <select
                   name="section"
-                  defaultValue={sectionId}
+                  defaultValue={selectedSection}
                   className="h-14 w-full rounded-2xl border border-white/10 bg-[#030b22] px-4 text-white outline-none focus:border-cyan-400/40"
                 >
                   <option value="">كل الأقسام</option>
@@ -287,11 +343,11 @@ export default async function AdminQuestionsPage({
                 </label>
                 <select
                   name="category"
-                  defaultValue={categoryId}
+                  defaultValue={selectedCategory}
                   className="h-14 w-full rounded-2xl border border-white/10 bg-[#030b22] px-4 text-white outline-none focus:border-cyan-400/40"
                 >
                   <option value="">كل الفئات</option>
-                  {filteredCategories.map((category) => (
+                  {filteredCategoriesForDropdown.map((category) => (
                     <option key={category.id} value={category.id}>
                       {category.name}
                     </option>
@@ -319,17 +375,29 @@ export default async function AdminQuestionsPage({
             </div>
 
             <div className="flex flex-wrap items-center gap-3 text-sm text-white/70">
-              <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-1.5 text-cyan-100">
-                عدد النتائج: {questions.length}
-              </span>
               <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5">
                 الفلترة الحالية محفوظة داخل الرابط
               </span>
+              {hasFilters ? (
+                <span className="rounded-full border border-cyan-400/25 bg-cyan-400/10 px-4 py-1.5 text-cyan-100">
+                  عدد النتائج: {questions.length}
+                </span>
+              ) : (
+                <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-4 py-1.5 text-amber-100">
+                  ابدأ بالبحث أو اختيار قسم/فئة لإظهار النتائج
+                </span>
+              )}
             </div>
           </form>
         </section>
 
-        {questions.length > 0 ? (
+        {!hasFilters ? (
+          <AdminEmptyState
+            title="ابدأ باستخدام الفلترة"
+            description="اختر قسمًا أو فئة أو اكتب جزءًا من السؤال ليتم تحميل النتائج بسرعة وبشكل منظم."
+            buttonText="استخدم النموذج بالأعلى"
+          />
+        ) : questions.length > 0 ? (
           <section className="grid gap-5 xl:grid-cols-2">
             {questions.map((question) => {
               const questionPreview = truncateText(stripHtml(question.question_text));
@@ -365,47 +433,45 @@ export default async function AdminQuestionsPage({
                       {question.is_active ? "مفعّل" : "غير مفعّل"}
                     </span>
                     <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-sm font-bold text-emerald-100">
-                      {question.is_used ? "مستخدم" : "غير مستخدم"}
+                      {question.is_used ? "غير مستخدم" : "مستخدم"}
                     </span>
                   </div>
 
-                  {(questionImage || answerImage) && (
-                    <div className="mb-4 grid gap-3 md:grid-cols-2">
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <div className="mb-2 text-sm font-bold text-white/80">
-                          صورة السؤال
-                        </div>
-                        {questionImage ? (
-                          <img
-                            src={questionImage}
-                            alt="صورة السؤال"
-                            className="h-40 w-full rounded-2xl bg-[#030b22] object-contain"
-                          />
-                        ) : (
-                          <div className="flex h-40 items-center justify-center rounded-2xl border border-dashed border-white/10 bg-[#030b22] text-sm text-white/45">
-                            لا توجد صورة داخل السؤال
-                          </div>
-                        )}
+                  <div className="mb-4 grid gap-3 md:grid-cols-2">
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                      <div className="mb-2 text-sm font-bold text-white/80">
+                        صورة السؤال
                       </div>
-
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                        <div className="mb-2 text-sm font-bold text-white/80">
-                          صورة الإجابة
+                      {questionImage ? (
+                        <img
+                          src={questionImage}
+                          alt="صورة السؤال"
+                          className="h-40 w-full rounded-2xl bg-[#030b22] object-contain"
+                        />
+                      ) : (
+                        <div className="flex h-40 items-center justify-center rounded-2xl border border-dashed border-white/10 bg-[#030b22] text-sm text-white/45">
+                          لا توجد صورة داخل السؤال
                         </div>
-                        {answerImage ? (
-                          <img
-                            src={answerImage}
-                            alt="صورة الإجابة"
-                            className="h-40 w-full rounded-2xl bg-[#030b22] object-contain"
-                          />
-                        ) : (
-                          <div className="flex h-40 items-center justify-center rounded-2xl border border-dashed border-white/10 bg-[#030b22] text-sm text-white/45">
-                            لا توجد صورة داخل الإجابة
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
-                  )}
+
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                      <div className="mb-2 text-sm font-bold text-white/80">
+                        صورة الإجابة
+                      </div>
+                      {answerImage ? (
+                        <img
+                          src={answerImage}
+                          alt="صورة الإجابة"
+                          className="h-40 w-full rounded-2xl bg-[#030b22] object-contain"
+                        />
+                      ) : (
+                        <div className="flex h-40 items-center justify-center rounded-2xl border border-dashed border-white/10 bg-[#030b22] text-sm text-white/45">
+                          لا توجد صورة داخل الإجابة
+                        </div>
+                      )}
+                    </div>
+                  </div>
 
                   <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-4">
                     <div className="mb-2 text-right text-2xl font-black text-white/80">
@@ -426,6 +492,7 @@ export default async function AdminQuestionsPage({
 
                     <form action={deleteQuestion}>
                       <input type="hidden" name="id" value={question.id} />
+                      <input type="hidden" name="returnTo" value={returnTo} />
                       <button
                         type="submit"
                         className="w-full rounded-2xl border border-red-500/25 bg-red-500/10 px-5 py-4 text-lg font-bold text-red-200 transition hover:bg-red-500/20"
@@ -439,22 +506,11 @@ export default async function AdminQuestionsPage({
             })}
           </section>
         ) : (
-          <div className="rounded-[2rem] border border-white/10 bg-[#071126] p-8 text-center shadow-[0_20px_60px_rgba(0,0,0,0.3)]">
-            <h3 className="text-2xl font-black text-white">
-              لا توجد أسئلة مطابقة
-            </h3>
-            <p className="mt-3 text-white/70">
-              جرّب تغيير الفلترة أو إضافة سؤال جديد.
-            </p>
-            <div className="mt-5">
-              <Link
-                href="/admin/questions/new"
-                className="inline-flex items-center justify-center rounded-2xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-400"
-              >
-                إضافة سؤال جديد
-              </Link>
-            </div>
-          </div>
+          <AdminEmptyState
+            title="لا توجد أسئلة مطابقة"
+            description="جرّب تغيير الفلاتر الحالية أو توسيع البحث."
+            buttonText="غيّر الفلاتر من الأعلى"
+          />
         )}
       </div>
     );
