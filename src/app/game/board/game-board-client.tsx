@@ -109,10 +109,6 @@ function getVisualBySlug(slug: string) {
   return categoryVisuals[slug] ?? categoryVisuals.default;
 }
 
-function stripHtml(value: string) {
-  return value.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
-}
-
 function formatCountdown(totalSeconds: number) {
   const minutes = Math.floor(totalSeconds / 60)
     .toString()
@@ -173,9 +169,7 @@ function writeLocalBoardState(storageKey: string, state: BoardState) {
 
   try {
     window.localStorage.setItem(storageKey, JSON.stringify(state));
-  } catch {
-    // ignore storage errors
-  }
+  } catch {}
 }
 
 function RichContent({
@@ -196,13 +190,19 @@ function RichContent({
   }
 
   return (
-    <div
-      className={[
-        "prose prose-invert max-w-none prose-headings:text-white prose-p:text-white/90 prose-strong:text-white prose-li:text-white/85 prose-blockquote:text-white/80",
-        large ? "prose-lg md:prose-xl" : "prose-base md:prose-lg",
-      ].join(" ")}
-      dangerouslySetInnerHTML={{ __html: safeHtml }}
-    />
+    <div className="flex justify-center">
+      <div
+        className={[
+          "prose prose-invert max-w-none text-center prose-headings:text-white prose-p:text-white/90 prose-strong:text-white prose-li:text-white/85 prose-blockquote:text-white/80",
+          "prose-p:text-center prose-headings:text-center prose-li:text-right",
+          large ? "prose-lg md:prose-xl" : "prose-base md:prose-lg",
+          "[&_img]:mx-auto [&_img]:block [&_img]:h-auto [&_img]:w-auto [&_img]:max-w-full [&_img]:max-h-[240px] md:[&_img]:max-h-[340px] [&_img]:object-contain",
+          "[&_figure]:mx-auto [&_figure]:text-center [&_figure_img]:mx-auto",
+          "[&_iframe]:mx-auto [&_video]:mx-auto",
+        ].join(" ")}
+        dangerouslySetInnerHTML={{ __html: safeHtml }}
+      />
+    </div>
   );
 }
 
@@ -214,12 +214,12 @@ function CategoryHeader({
   const visual = getVisualBySlug(category.slug);
 
   return (
-    <div className="relative overflow-hidden rounded-[1.6rem] border border-white/10 bg-[#0c1431] px-3 pb-4 pt-3 shadow-[0_14px_40px_rgba(0,0,0,0.25)]">
+    <div className="relative overflow-hidden rounded-[1.25rem] border border-white/10 bg-[#0c1431] px-2 pb-3 pt-3 shadow-[0_14px_40px_rgba(0,0,0,0.25)] md:rounded-[1.6rem] md:px-3 md:pb-4">
       <div
         className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${visual.glow}`}
       />
-      <div className="relative flex flex-col items-center gap-3">
-        <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-white/5 shadow-inner">
+      <div className="relative flex flex-col items-center gap-2 md:gap-3">
+        <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-inner md:h-16 md:w-16 md:rounded-2xl">
           {category.image_url ? (
             <img
               src={category.image_url}
@@ -227,12 +227,12 @@ function CategoryHeader({
               className="h-full w-full object-cover"
             />
           ) : (
-            <span className="text-2xl text-white/60">?</span>
+            <span className="text-xl text-white/60 md:text-2xl">?</span>
           )}
         </div>
 
-        <div className="min-h-[52px] text-center">
-          <h3 className="line-clamp-2 text-base font-black leading-6 text-white md:text-lg">
+        <div className="min-h-[42px] text-center md:min-h-[52px]">
+          <h3 className="line-clamp-2 text-sm font-black leading-5 text-white md:text-lg md:leading-6">
             {category.name}
           </h3>
         </div>
@@ -260,7 +260,7 @@ function QuestionCell({
       onClick={onOpen}
       disabled={!slot.question || isUsed}
       className={[
-        "group relative flex h-[74px] items-center justify-center overflow-hidden rounded-[1.25rem] border text-center transition-all duration-200",
+        "group relative flex h-[56px] items-center justify-center overflow-hidden rounded-[1rem] border text-center transition-all duration-200 md:h-[74px] md:rounded-[1.25rem]",
         slot.question && !isUsed
           ? `border-white/10 bg-[#101b42] text-white hover:-translate-y-0.5 hover:bg-[#15245b] ${visual.ring}`
           : "cursor-not-allowed border-white/5 bg-[#0b1230] text-slate-500",
@@ -269,10 +269,10 @@ function QuestionCell({
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.08),transparent_60%)]" />
 
       <div className="relative flex flex-col items-center">
-        <span className="text-[2rem] font-black leading-none tracking-tight md:text-[2.15rem]">
+        <span className="text-[1.45rem] font-black leading-none tracking-tight md:text-[2.15rem]">
           {slot.points}
         </span>
-        <span className="mt-1 text-[11px] text-white/40">
+        <span className="mt-1 hidden text-[11px] text-white/40 md:block">
           {!slot.question ? "غير متاح" : isUsed ? "تم الاستخدام" : "افتح السؤال"}
         </span>
       </div>
@@ -311,11 +311,11 @@ function ScoreCard({
   return (
     <div
       className={[
-        "rounded-[1.8rem] border bg-[#0b1230] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]",
+        "rounded-[1.5rem] border bg-[#0b1230] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.28)] md:rounded-[1.8rem] md:p-4",
         isLeading ? "border-white/15" : "border-white/10",
       ].join(" ")}
     >
-      <div className="mb-4 flex items-center justify-between gap-3">
+      <div className="mb-3 flex items-center justify-between gap-3 md:mb-4">
         <span
           className={[
             "rounded-full border px-3 py-1 text-xs font-bold",
@@ -334,7 +334,7 @@ function ScoreCard({
 
       <div
         className={[
-          "rounded-[1.4rem] border px-3 py-5 text-center",
+          "rounded-[1.2rem] border px-3 py-4 text-center md:rounded-[1.4rem] md:py-5",
           accentClasses.box,
         ].join(" ")}
       >
@@ -343,7 +343,7 @@ function ScoreCard({
             type="button"
             onClick={onDecrease}
             className={[
-              "flex h-11 w-11 items-center justify-center rounded-full border text-2xl font-black transition",
+              "flex h-9 w-9 items-center justify-center rounded-full border text-xl font-black transition md:h-11 md:w-11 md:text-2xl",
               accentClasses.btn,
             ].join(" ")}
           >
@@ -351,7 +351,7 @@ function ScoreCard({
           </button>
 
           <div>
-            <div className="text-5xl font-black tracking-tight text-white">
+            <div className="text-3xl font-black tracking-tight text-white md:text-5xl">
               {score}
             </div>
             <div className="mt-1 text-xs text-white/50">نقطة</div>
@@ -361,7 +361,7 @@ function ScoreCard({
             type="button"
             onClick={onIncrease}
             className={[
-              "flex h-11 w-11 items-center justify-center rounded-full border text-2xl font-black transition",
+              "flex h-9 w-9 items-center justify-center rounded-full border text-xl font-black transition md:h-11 md:w-11 md:text-2xl",
               accentClasses.btn,
             ].join(" ")}
           >
@@ -402,10 +402,12 @@ function BoardSidebar({
       : `المتصدر الآن: ${leadingTeam === "teamOne" ? teamOne : teamTwo}`;
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <div className="rounded-[1.8rem] border border-white/10 bg-[#0b1230] p-4 shadow-[0_18px_40px_rgba(0,0,0,0.28)]">
+    <div className="flex h-full flex-col gap-3 md:gap-4">
+      <div className="rounded-[1.5rem] border border-white/10 bg-[#0b1230] p-3 shadow-[0_18px_40px_rgba(0,0,0,0.28)] md:rounded-[1.8rem] md:p-4">
         <div className="text-xs text-white/50">لوحة اللعبة</div>
-        <h2 className="mt-2 text-2xl font-black text-white">{gameName}</h2>
+        <h2 className="mt-2 text-xl font-black text-white md:text-2xl">
+          {gameName}
+        </h2>
         <p className="mt-2 text-sm text-white/65">{leaderText}</p>
       </div>
 
@@ -427,10 +429,10 @@ function BoardSidebar({
         accent="orange"
       />
 
-      <div className="rounded-[1.6rem] border border-white/10 bg-[#0b1230] p-3">
+      <div className="rounded-[1.4rem] border border-white/10 bg-[#0b1230] p-3 md:rounded-[1.6rem]">
         <Link
           href="/account"
-          className="flex w-full items-center justify-center rounded-[1.1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/10"
+          className="flex w-full items-center justify-center rounded-[1rem] border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold text-white transition hover:bg-white/10 md:rounded-[1.1rem]"
         >
           الرجوع للحساب
         </Link>
@@ -484,10 +486,10 @@ function QuestionOverlay({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/80 p-4 backdrop-blur-md">
-      <div className="relative max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-[2rem] border border-white/10 bg-[#071126] shadow-[0_30px_120px_rgba(0,0,0,0.55)]">
-        <div className="border-b border-white/10 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_45%)] px-5 py-4 sm:px-7">
-          <div className="flex flex-wrap items-center gap-3">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#020617]/80 p-2 backdrop-blur-md md:p-4">
+      <div className="relative flex h-[96vh] w-full max-w-5xl flex-col overflow-hidden rounded-[1.5rem] border border-white/10 bg-[#071126] shadow-[0_30px_120px_rgba(0,0,0,0.55)] md:h-[92vh] md:rounded-[2rem]">
+        <div className="border-b border-white/10 bg-[radial-gradient(circle_at_top,rgba(34,211,238,0.16),transparent_45%)] px-4 py-4 sm:px-6 md:px-7">
+          <div className="flex flex-wrap items-center gap-2 md:gap-3">
             <span className="rounded-full border border-cyan-300/20 bg-cyan-400/10 px-3 py-1 text-xs font-bold text-cyan-200">
               {openQuestion.categoryName}
             </span>
@@ -503,7 +505,7 @@ function QuestionOverlay({
           </div>
 
           <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
+            <div className="text-center lg:text-right">
               <h2 className="text-2xl font-black text-white sm:text-3xl">
                 {!showAnswer && !showWinnerPicker
                   ? "السؤال"
@@ -514,7 +516,7 @@ function QuestionOverlay({
             </div>
 
             {!showAnswer && !showWinnerPicker ? (
-              <div className="min-w-[240px]">
+              <div className="w-full max-w-sm lg:min-w-[240px]">
                 <div className="mb-2 flex items-center justify-between text-sm text-white/70">
                   <span>المؤقت</span>
                   <span className="font-black text-white">
@@ -551,11 +553,19 @@ function QuestionOverlay({
           </div>
         </div>
 
-        <div className="max-h-[calc(92vh-210px)] overflow-y-auto px-5 py-6 sm:px-7">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-6 md:px-7">
           {!showAnswer && !showWinnerPicker ? (
-            <RichContent html={openQuestion.question_text} large />
+            <div className="flex min-h-full items-center justify-center">
+              <div className="w-full">
+                <RichContent html={openQuestion.question_text} large />
+              </div>
+            </div>
           ) : showAnswer && !showWinnerPicker ? (
-            <RichContent html={openQuestion.answer_text} large />
+            <div className="flex min-h-full items-center justify-center">
+              <div className="w-full">
+                <RichContent html={openQuestion.answer_text} large />
+              </div>
+            </div>
           ) : (
             <div className="py-4">
               <div className="mb-6 text-center">
@@ -596,7 +606,7 @@ function QuestionOverlay({
           )}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-white/5 px-5 py-4 sm:px-7">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 bg-white/5 px-4 py-4 sm:px-6 md:px-7">
           {!showAnswer && !showWinnerPicker ? (
             <>
               <button
@@ -814,10 +824,7 @@ export default function GameBoardClient({
     }
   }, [openQuestion]);
 
-  function updateScore(
-    team: "teamOne" | "teamTwo",
-    delta: number,
-  ) {
+  function updateScore(team: "teamOne" | "teamTwo", delta: number) {
     setBoardState((prev) => {
       const nextValue =
         team === "teamOne"
@@ -944,13 +951,13 @@ export default function GameBoardClient({
   }
 
   return (
-    <div className="min-h-screen bg-[#03091c] text-white">
-      <div className="mx-auto max-w-[1800px] px-3 py-4 md:px-5 md:py-6">
-        <div className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,#071126_0%,#03081b_100%)] p-3 shadow-[0_25px_80px_rgba(0,0,0,0.35)] md:p-5">
+    <div className="min-h-screen overflow-x-hidden bg-[#03091c] text-white">
+      <div className="mx-auto max-w-[1800px] px-2 py-3 md:px-5 md:py-6">
+        <div className="overflow-hidden rounded-[1.6rem] border border-white/10 bg-[linear-gradient(180deg,#071126_0%,#03081b_100%)] p-2 shadow-[0_25px_80px_rgba(0,0,0,0.35)] md:rounded-[2rem] md:p-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
               <div className="text-xs text-cyan-200/70">لوحة اللعب</div>
-              <h1 className="mt-1 text-2xl font-black md:text-3xl">
+              <h1 className="mt-1 text-xl font-black md:text-3xl">
                 {gameName}
               </h1>
             </div>
@@ -966,18 +973,18 @@ export default function GameBoardClient({
           </div>
 
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
-            <div className="overflow-x-auto">
+            <div className="min-w-0">
               <div
-                className="grid min-w-[980px] gap-3 md:gap-4"
+                className="grid gap-2 md:gap-4"
                 style={{
-                  gridTemplateColumns: `repeat(${Math.max(categories.length, 1)}, minmax(150px, 1fr))`,
+                  gridTemplateColumns: `repeat(${Math.max(categories.length, 1)}, minmax(0, 1fr))`,
                 }}
               >
                 {grouped.map((category) => (
-                  <div key={category.id} className="flex flex-col gap-3">
+                  <div key={category.id} className="flex min-w-0 flex-col gap-2.5 md:gap-3">
                     <CategoryHeader category={category} />
 
-                    <div className="flex flex-col gap-2.5">
+                    <div className="flex flex-col gap-2">
                       {category.rows.map((row) => (
                         <div
                           key={`${category.id}-${row.points}`}
